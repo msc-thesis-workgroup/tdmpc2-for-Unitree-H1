@@ -11,7 +11,7 @@ eval_episodes: 10
 eval_freq: 50000
 
 # training
-steps: 10_000_000
+steps: 5_000_000
 batch_size: 256
 reward_coef: 0.1
 value_coef: 0.1
@@ -27,6 +27,7 @@ discount_max: 0.995
 buffer_size: 1_000_000
 exp_name: default
 data_dir: ???
+save_freq: 10_000
 
 # planning
 mpc: true

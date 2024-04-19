@@ -55,7 +55,9 @@ class TDMPC2:
 		Args:
 			fp (str): Filepath to save state dict to.
 		"""
-		torch.save({"model": self.model.state_dict()}, fp)
+		torch.save({"model": self.model.state_dict(),
+                    "optim": self.optim.state_dict(),
+                    "pi_optim": self.pi_optim.state_dict()}, fp)
 
 	def load(self, fp):
 		"""
@@ -66,6 +68,8 @@ class TDMPC2:
 		"""
 		state_dict = fp if isinstance(fp, dict) else torch.load(fp)
 		self.model.load_state_dict(state_dict["model"])
+		self.optim.load_state_dict(state_dict["optim"])
+		self.pi_optim.load_state_dict(state_dict["pi_optim"])
 
 	@torch.no_grad()
 	def act(self, obs, t0=False, eval_mode=False, task=None):

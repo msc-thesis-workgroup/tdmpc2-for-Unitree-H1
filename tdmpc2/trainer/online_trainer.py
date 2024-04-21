@@ -37,7 +37,8 @@ class OnlineTrainer(Trainer):
 				ep_reward += reward
 				t += 1
 				if self.cfg.save_video:
-					self.logger.video.record(self.env)
+					#self.logger.video.record(self.env) 
+					self.logger.video.save(self._step, key='results/video')
 			ep_rewards.append(ep_reward)
 			ep_successes.append(info['success'])
 			if self.cfg.save_video:
@@ -92,26 +93,35 @@ class OnlineTrainer(Trainer):
 
 				if self._step > 0:
 					train_metrics.update(
-						episode_reward=torch.tensor([td['reward'] for td in self._tds[1:]]).sum(),
-						episode_success=info['success'],
-					)
+                        episode_reward=torch.tensor(
+                            [td["reward"] for td in self._tds[1:]]
+                        ).sum(),
+                        episode_success=info["success"],
+                    )
 					train_metrics.update(self.common_metrics())
-					self.logger.log(train_metrics, 'train')
+
+					results_metrics = {'return': train_metrics['episode_reward'],
+                                       'episode_length': len(self._tds[1:]),
+                                       'success': train_metrics['episode_success'],
+                                       'success_subtasks': info['success_subtasks'],
+                                       'step': self._step,}
+					self.logger.log(train_metrics, "train")
+					self.logger.log(results_metrics, "results")
 					self._ep_idx = self.buffer.add(torch.cat(self._tds))
 
 				obs = self.env.reset()
 				self._tds = [self.to_td(obs)]
-
+				
 			# Collect experience
-			if self._step > self.cfg.seed_steps:
-				action = self.agent.act(obs, t0=len(self._tds)==1)
+			if self._step > self.cfg.seed_steps or self.cfg.from_scratch:
+				action = self.agent.act(obs, t0=len(self._tds) == 1)
 			else:
 				action = self.env.rand_act()
 			obs, reward, done, info = self.env.step(action)
 			self._tds.append(self.to_td(obs, action, reward))
 
 			# Update agent
-			if self._step >= self.cfg.seed_steps:
+			if self._step == self.cfg.seed_steps and not self.cfg.from_scratch:
 				if self._step == self.cfg.seed_steps:
 					num_updates = self.cfg.seed_steps
 					print('Pretraining agent on seed data...')

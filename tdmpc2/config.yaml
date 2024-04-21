@@ -2,13 +2,15 @@ defaults:
     - override hydra/launcher: submitit_local
 
 # environment
-task: dog-run
+task: dog-run #humanoid_h1-walk-v0
 obs: state
 
 # evaluation
 checkpoint: ???
-eval_episodes: 10
+eval_episodes: 1
 eval_freq: 50000
+
+from_scratch: false
 
 # training
 steps: 5_000_000
@@ -25,7 +27,7 @@ discount_denom: 5
 discount_min: 0.95
 discount_max: 0.995
 buffer_size: 1_000_000
-exp_name: default
+exp_name: tdmpc
 data_dir: ???
 save_freq: 10_000
 
@@ -63,8 +65,8 @@ dropout: 0.01
 simnorm_dim: 8
 
 # logging
-wandb_project: ???
-wandb_entity: ???
+wandb_project: humanoid-bench
+wandb_entity: robot-learning
 wandb_silent: false
 disable_wandb: true
 save_csv: true
@@ -87,3 +89,10 @@ action_dims: ???
 episode_lengths: ???
 seed_steps: ???
 bin_size: ???
+
+# humanoid envs
+policy_path: ???
+mean_path: ???
+var_path: ???
+policy_type: ???
+small_obs: ???

@@ -1,14 +1,20 @@
 defaults:
     - override hydra/launcher: submitit_local
 
+# TODO(all): remove useless lines parameters from here
+
+fill_buffer_steps: 0 # TODO(my-rice): consider remove this line from here and the other parts of the code # you have to add the more 5*max_episode_length (5000) steps to this number
+
 # environment
-task: dog-run #humanoid_h1-walk-v0
+task: humanoid_h1-walk-v0
 obs: state
 
 # evaluation
-checkpoint: ???
+checkpoint: None
+experiment_name: None
+
 eval_episodes: 1
-eval_freq: 50000
+eval_freq: 30000
 
 from_scratch: false
 
@@ -29,7 +35,7 @@ discount_max: 0.995
 buffer_size: 1_000_000
 exp_name: tdmpc
 data_dir: ???
-save_freq: 10_000
+save_freq: 20_000
 
 # planning
 mpc: true

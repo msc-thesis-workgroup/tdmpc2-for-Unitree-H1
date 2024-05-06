@@ -73,6 +73,7 @@ def evaluate(cfg: dict):
 
     # Make environment
     env = make_env(cfg)
+    print("env created. action_space,", env.action_space,"observation_space: ",env.observation_space,"  max_episode_steps: ", env.max_episode_steps)
 
     # Load agent
     agent = TDMPC2(cfg)

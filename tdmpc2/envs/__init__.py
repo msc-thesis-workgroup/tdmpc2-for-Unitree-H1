@@ -7,6 +7,8 @@ from envs.wrappers.multitask import MultitaskWrapper
 from envs.wrappers.pixels import PixelWrapper
 from envs.wrappers.tensor import TensorWrapper
 
+from envs.basic_locomotion_envs import make_env as make_basic_locomotion_env
+
 def missing_dependencies(task):
 	raise ValueError(f'Missing dependencies for task {task}; install dependencies to use this environment.')
 
@@ -62,7 +64,14 @@ def make_env(cfg):
 
 	else:
 		env = None
-		for fn in [make_dm_control_env, make_maniskill_env, make_metaworld_env, make_myosuite_env]:
+
+		for fn in [
+            make_basic_locomotion_env,
+            make_dm_control_env,
+            make_maniskill_env,
+            make_metaworld_env,
+            make_myosuite_env,
+        ]:
 			try:
 				env = fn(cfg)
 			except ValueError:

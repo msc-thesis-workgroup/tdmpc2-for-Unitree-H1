@@ -6,6 +6,7 @@ import gym
 from envs.wrappers.multitask import MultitaskWrapper
 from envs.wrappers.pixels import PixelWrapper
 from envs.wrappers.tensor import TensorWrapper
+from envs.basic_locomotion_envs import make_env as make_basic_locomotion_env
 
 from envs.basic_locomotion_envs import make_env as make_basic_locomotion_env
 

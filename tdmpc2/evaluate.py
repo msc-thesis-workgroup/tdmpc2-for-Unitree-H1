@@ -72,6 +72,7 @@ def evaluate(cfg: dict):
         )
 
     # Make environment
+    print("[DEBUG: evaluate.py] make_env(cfg)")
     env = make_env(cfg)
     print("env created. action_space,", env.action_space,"observation_space: ",env.observation_space,"  max_episode_steps: ", env.max_episode_steps)
 
@@ -81,6 +82,8 @@ def evaluate(cfg: dict):
         cfg.checkpoint
     ), f"Checkpoint {cfg.checkpoint} not found! Must be a valid filepath."
     agent.load(cfg.checkpoint)
+
+    print("[DEBUG: evaluate.py] Agent loaded", cfg.checkpoint)
 
     # Evaluate
     if cfg.multitask:
@@ -100,7 +103,7 @@ def evaluate(cfg: dict):
         if not cfg.multitask:
             task_idx = None
         ep_rewards, ep_successes = [], []
-        for i in range(cfg.eval_episodes):
+        for i in range(cfg.eval_episodes): ### SONO QUIIIIII
             obs, done, ep_reward, t = env.reset(task_idx=task_idx), False, 0, 0
             #Adapt to the new observation format
             obs = obs[0] if isinstance(obs, tuple) else obs
@@ -108,13 +111,11 @@ def evaluate(cfg: dict):
                 frames = [env.render()]
             while not done:
                 action = agent.act(obs, t0=t == 0, task=task_idx)
-                obs, reward, terminated, info = env.step(action)
-                #obs, reward, terminated, truncated, info = env.step(action)
+                obs, reward, terminated, truncated, info = env.step(action)
                 
                 #Adapt to the new observation and done format
                 obs = obs[0] if isinstance(obs, tuple) else obs
-                done = terminated
-                #done = terminated or truncated
+                done = terminated or truncated
                 ep_reward += reward
                 t += 1
                 if cfg.save_video:

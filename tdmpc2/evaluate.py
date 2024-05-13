@@ -75,7 +75,6 @@ def evaluate(cfg: dict):
     print("[DEBUG: evaluate.py] make_env(cfg)")
     env = make_env(cfg)
     print("env created. action_space,", env.action_space,"observation_space: ",env.observation_space,"  max_episode_steps: ", env.max_episode_steps)
-    print("[DEBUG: evaluate.py] ... done")
 
     # Load agent
     agent = TDMPC2(cfg)

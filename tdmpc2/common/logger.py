@@ -112,9 +112,11 @@ class VideoRecorder:
 class Logger:
     """Primary logging object. Logs either locally or using wandb."""
 
-    def __init__(self, cfg):
+    def __init__(self, cfg, experiment_name=None):
         self._log_dir = make_dir(cfg.work_dir)
         self._model_dir = make_dir(self._log_dir / "models")
+        # Create a directory for the current experiment with the name of the task and the date of the experiment
+        self._experiment_dir = make_dir(self._model_dir / str(experiment_name + "-" + str(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")))) if experiment_name else make_dir(self._model_dir / str("experiment-" + str(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S"))))
         self._save_csv = cfg.save_csv
         self._save_agent = cfg.save_agent
         self._group = cfg_to_group(cfg)
@@ -156,9 +158,13 @@ class Logger:
     def model_dir(self):
         return self._model_dir
 
+    @property
+    def experiment_dir(self):
+        return self._experiment_dir
+
     def save_agent(self, agent=None, identifier="final"):
         if self._save_agent and agent:
-            fp = self._model_dir / f"{str(identifier)}.pt"
+            fp = self._experiment_dir / f"{str(identifier)}.pt"
             agent.save(fp)
             if self._wandb:
                 artifact = self._wandb.Artifact(
@@ -264,7 +270,16 @@ class Logger:
             keys = ["step", "episode_reward"]
             self._eval.append(np.array([d[keys[0]], d[keys[1]]]))
             pd.DataFrame(np.array(self._eval)).to_csv(
-                self._log_dir / "eval.csv", header=keys, index=None
+                self._experiment_dir / "eval.csv", header=keys, index=None
             )
         if category != "results":
             self._print(d, category)
+
+    def load_eval(self, old_csv=None):
+        """Load evaluation metrics from a previous run."""
+        if old_csv == None:
+            return
+        df = pd.read_csv(old_csv)
+        self._eval = df.values.tolist()
+        print(colored(f"Loaded {len(self._eval)} eval records.", "yellow"))
+        print("[DEBUG logger.py]: Loaded eval records:",self._eval, "from", old_csv)

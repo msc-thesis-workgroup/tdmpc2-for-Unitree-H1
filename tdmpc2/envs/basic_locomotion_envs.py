@@ -64,7 +64,7 @@ def make_env(cfg):
     Make Humanoid environment for locomotion task.
     """
 
-    print("[DEBUG: basic_locomotion_env] make_env(cfg)")
+    #print("[DEBUG: basic_locomotion_env] make_env(cfg)")
 
     if not cfg.task.startswith("humanoid_"):
         raise ValueError("Unknown task:", cfg.task)

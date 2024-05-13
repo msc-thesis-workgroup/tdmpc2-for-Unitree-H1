@@ -72,7 +72,6 @@ def evaluate(cfg: dict):
         )
 
     # Make environment
-    print("[DEBUG: evaluate.py] make_env(cfg)")
     env = make_env(cfg)
     print("env created. action_space,", env.action_space,"observation_space: ",env.observation_space,"  max_episode_steps: ", env.max_episode_steps)
 
@@ -83,7 +82,6 @@ def evaluate(cfg: dict):
     ), f"Checkpoint {cfg.checkpoint} not found! Must be a valid filepath."
     agent.load(cfg.checkpoint)
 
-    print("[DEBUG: evaluate.py] Agent loaded", cfg.checkpoint)
 
     # Evaluate
     if cfg.multitask:
@@ -103,7 +101,7 @@ def evaluate(cfg: dict):
         if not cfg.multitask:
             task_idx = None
         ep_rewards, ep_successes = [], []
-        for i in range(cfg.eval_episodes): ### SONO QUIIIIII
+        for i in range(cfg.eval_episodes):
             obs, done, ep_reward, t = env.reset(task_idx=task_idx), False, 0, 0
             #Adapt to the new observation format
             obs = obs[0] if isinstance(obs, tuple) else obs

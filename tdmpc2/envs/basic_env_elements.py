@@ -71,7 +71,8 @@ class HumanoidEnv(MujocoEnv, gym.utils.EzPickle):
 
         model_path = f"envs/{robot}_{control}_{task}.xml"
         model_path = os.path.join(asset_path, model_path)
-
+        model_path = "/home/davide/tdmpc2/tdmpc2/unitree_h1/scene.xml" #TODO(my-rice) fix this. You need to change dynamically the path. It must not be hard coded.
+        print("[DEBUG: basic_locomotion_env] model_path:", model_path)
         self.robot = ROBOTS[robot](self)
         task_info = TASKS[task](self.robot, None, **kwargs)
 
@@ -92,7 +93,7 @@ class HumanoidEnv(MujocoEnv, gym.utils.EzPickle):
             height=height,
             camera_name=task_info.camera_name,
         )
-
+        #print("[DEBUG basic_env_elements]: timestep:",self.model.opt.timestep)
         self.action_high = self.action_space.high
         self.action_low = self.action_space.low
         self.action_space = Box(
@@ -156,8 +157,46 @@ class HumanoidEnv(MujocoEnv, gym.utils.EzPickle):
             len(data.qpos),
         )
 
+    def get_joint_torques(self,ctrl):
+        
+        kp = np.array([200, 200, 200, 300, 40, 200, 200, 200, 300, 40, 300, 100, 100, 100, 100, 100, 100, 100, 100])
+        kd = np.array([5, 5, 5, 6, 2, 5, 5, 5, 6, 2, 6, 2, 2, 2, 2, 2, 2, 2, 2])
+        
+
+        self.data.ctrl = ctrl
+
+
+        #ctrl = self.data.ctrl
+
+        actuator_length = self.data.actuator_length
+        error = ctrl - actuator_length
+        m = self.model
+        d = self.data
+        
+        empty_array = np.zeros(m.actuator_dyntype.shape)
+        
+        ctrl_dot = np.zeros(m.actuator_dyntype.shape) if np.array_equal(m.actuator_dyntype,empty_array) else d.act_dot[m.actuator_actadr + m.actuator_actnum - 1]
+        
+        error_dot = ctrl_dot - self.data.actuator_velocity
+        
+        joint_torques = kp*error + kd*error_dot
+
+        
+        return joint_torques
+
     def step(self, action):
+
         return self.task.step(action)
+
+    # def step(self, action):
+        
+    #     coefficient = self.robot.get_ctrl_ranges()[:,1] # This is the maximum value of the control range. NOTE that I can do this because the control range is symmetric.
+    #     #coefficient = np.array([200,200,200,300,40,200,200,200,300,40,200,40,40,18,18,40,40,18,18])
+    #     #print("[DEBUG basic_env_elements]: action_before:", action)
+    #     action = action * coefficient
+    #     #print("[DEBUG basic_env_elements]: action:", action)
+        
+    #     return self.task.step(action)
 
     def reset_model(self):
         mujoco.mj_resetDataKeyframe(self.model, self.data, self.keyframe)

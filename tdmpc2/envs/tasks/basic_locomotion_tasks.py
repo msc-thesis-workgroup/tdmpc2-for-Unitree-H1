@@ -89,6 +89,102 @@ class Walk(Task):
 
     def get_terminated(self):
         return self._env.data.qpos[2] < 0.2, {}
+    
+
+    def array_to_check(self,action):
+        action_high = np.array([0.43, 0.43, 2.53, 2.05, 0.52, 0.43, 0.43, 2.53, 2.05, 0.52, 2.35, 2.87, 3.11, 4.45, 2.61, 2.87, 0.34, 1.3, 2.61])
+        action_low = np.array([-0.43, -0.43, -3.14, -0.26, -0.87, -0.43, -0.43, -3.14, -0.26, -0.87, -2.35, -2.87, -0.34, -1.3,  -1.25, -2.87, -3.11, -4.45, -1.25])
+
+        #TODO put action_high and action_low to replace self._env.action_high and self._env.action_low
+        desired_joint_position = (action + 1) / 2 * (
+            self._env.action_high - self._env.action_low
+        ) + self._env.action_low    
+
+
+        #desired_joint_position = (action + 1) / 2 * (action_high - action_low) + action_low
+        
+        
+
+        torques = self._env.get_joint_torques(desired_joint_position)
+
+        torque_limits = np.array([200,200,200,300,40,200,200,200,300,40,200,40,40,18,18,40,40,18,18])
+
+        # check if the torques are within the limits
+        for id,value in enumerate(torques):
+            if value > torque_limits[id]:
+                torques[id] = torque_limits[id]
+            elif value < -torque_limits[id]:
+                torques[id] = -torque_limits[id]
+
+        self._env.data.qfrc_actuator[6:self.robot.dof] = torques
+        #print("check: ", check)
+        #return check
+
+
+
+    def step(self, action):
+        
+        old_action = action
+        #check = self.array_to_check(action)
+        
+        action = self.unnormalize_action(action)
+        #print("action: ", action)
+
+        # if not np.array_equal(np.round(check,3), np.round(action,3)):
+        #     print("action: ", action)
+        #     print("check: ", check)
+
+        # qfrc_inverse = self._env.data.qfrc_inverse
+        # print("qfrc_inverse: ", qfrc_inverse)
+
+        # qfrc_bias = self._env.data.qfrc_bias
+        # print("qfrc_bias: ", qfrc_bias)
+
+        # qfrc_smooth = self._env.data.qfrc_smooth
+        # print("qfrc_smooth: ", qfrc_smooth)
+
+        # qfrc_spring = self._env.data.qfrc_spring
+        # print("qfrc_spring: ", qfrc_spring)
+
+        # Get the joint torques from mujoco environment
+        #applied = self._env.data.qfrc_applied[:self.robot.dof] 
+        actuator = self._env.data.qfrc_actuator[6:self.robot.dof] # == actuator_force
+        passive = self._env.data.qfrc_passive[:self.robot.dof]
+        
+        #actuator_force = self._env.data.actuator_force[:self.robot.dof]
+        #print("BEFORE ctrl: ", actuator_force)
+        
+
+        #print("applied: ", applied)
+        #print("actuator: ", actuator)
+        #print("check - actuator: ", check - actuator)
+
+        #print("passive: ", passive)
+
+        #print("dir(env): ", dir(self._env))
+        self.array_to_check(old_action)
+
+        self._env.do_simulation(self._env.data.ctrl, self._env.frame_skip)
+        
+        # Get the joint torques from mujoco environment
+        #applied = self._env.data.qfrc_applied[:self.robot.dof] 
+        actuator = self._env.data.qfrc_actuator[6:self.robot.dof] # == actuator_force
+        
+        #check = self.array_to_check(old_action)
+        
+        #print("AFTER check: ", check)
+        #print("AFTER actuator: ", actuator)
+        #print("AFTER check - actuator: ", check - actuator)
+
+
+
+        obs = self.get_obs()
+        reward, reward_info = self.get_reward()
+        terminated, terminated_info = self.get_terminated()
+
+        info = {"per_timestep_reward": reward, **reward_info, **terminated_info}
+
+        return obs, reward, terminated, False, info 
 
 
 class Stand(Walk):

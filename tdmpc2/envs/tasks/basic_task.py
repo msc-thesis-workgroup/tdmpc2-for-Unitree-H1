@@ -46,12 +46,16 @@ class Task:
         )
 
     def unnormalize_action(self, action):
+        #print("self._env.action_high", self._env.action_high)
+        #print("self._env.action_low", self._env.action_low)
+        #print("(self._env.action_high - self._env.action_low) + self._env.action_low", (self._env.action_high - self._env.action_low) + self._env.action_low)
         return (action + 1) / 2 * (
             self._env.action_high - self._env.action_low
         ) + self._env.action_low
 
     def step(self, action):
         action = self.unnormalize_action(action)
+        #print("action: ", action)
         self._env.do_simulation(action, self._env.frame_skip)
 
         obs = self.get_obs()

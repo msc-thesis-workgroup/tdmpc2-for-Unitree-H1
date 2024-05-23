@@ -156,6 +156,69 @@ class HumanoidEnv(MujocoEnv, gym.utils.EzPickle):
             len(data.qpos),
         )
 
+        
+# void Pid::Compute(const mjModel* m, mjData* d, int instance) {
+#   for (int i = 0; i < actuators_.size(); i++) {
+#     int actuator_idx = actuators_[i];
+#     State state = GetState(m, d, actuator_idx);
+#     mjtNum ctrl =
+#         GetCtrl(m, d, actuator_idx, state, m->actuator_actearly[actuator_idx]); # NOTE I think this is the actual control input of the actuator
+
+#     mjtNum error = ctrl - d->actuator_length[actuator_idx]; # computed by mj_fwdPosition/mj_transmission
+                                                             #  mjtNum* actuator_length;   // actuator lengths  (nu x 1)
+
+#     mjtNum ctrl_dot = m->actuator_dyntype[actuator_idx] == mjDYN_NONE
+#                           ? 0
+#                           : d->act_dot[m->actuator_actadr[actuator_idx] +
+#                                        m->actuator_actnum[actuator_idx] - 1];
+#     mjtNum error_dot = ctrl_dot - d->actuator_velocity[actuator_idx];
+
+#     [...]
+
+#     d->actuator_force[actuator_idx] = config_.p_gain * error +
+#                                       config_.d_gain * error_dot +
+#                                       config_.i_gain * integral;
+#   }
+# }
+
+
+
+    def get_joint_torques(self,desired_joint_positions):
+
+        kp = np.array([200, 200, 200, 300, 40, 200, 200, 200, 300, 40, 300, 100, 100, 100, 100, 100, 100, 100, 100])
+        kd = np.array([5, 5, 5, 6, 2, 5, 5, 5, 6, 2, 6, 2, 2, 2, 2, 2, 2, 2, 2])
+        
+
+        #print("desired_joint_positions", desired_joint_positions)
+        self.data.ctrl = desired_joint_positions
+
+
+        ctrl = self.data.ctrl
+        actuator_length = self.data.actuator_length
+        #print("ctrl: ", ctrl)
+        #print("actuator_length: ", actuator_length)
+        error = ctrl - actuator_length
+        m = self.model
+        d = self.data
+        #print("actuator_dyntype", m.actuator_dyntype)
+        empty_array = np.zeros(m.actuator_dyntype.shape)
+        
+        #print("d.act_dot: ", d.act_dot)
+        ctrl_dot = np.zeros(m.actuator_dyntype.shape) if np.array_equal(m.actuator_dyntype,empty_array) else d.act_dot[m.actuator_actadr + m.actuator_actnum - 1]
+        
+        #ctrl_dot =np.zeros(19)
+        #print("ctrl_dot: ", ctrl_dot)
+        error_dot = ctrl_dot - self.data.actuator_velocity
+        
+        #actuator_force = self.data.actuator_force
+        my_control = kp*error + kd*error_dot
+
+        #print("actuator_force: ", actuator_force)
+        #print("my_control: ", my_control)
+        return my_control
+        
+
+
     def step(self, action):
         return self.task.step(action)
 

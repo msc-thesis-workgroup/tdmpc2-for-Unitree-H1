@@ -159,14 +159,12 @@ class HumanoidEnv(MujocoEnv, gym.utils.EzPickle):
 
     def get_joint_torques(self,ctrl):
         
+        # TODO(my-rice): I need to change this. The kp and kd values are hard coded. I need to take them from the specific robot class. (from robots.py)
         kp = np.array([200, 200, 200, 300, 40, 200, 200, 200, 300, 40, 300, 100, 100, 100, 100, 100, 100, 100, 100])
         kd = np.array([5, 5, 5, 6, 2, 5, 5, 5, 6, 2, 6, 2, 2, 2, 2, 2, 2, 2, 2])
         
 
         self.data.ctrl = ctrl
-
-
-        #ctrl = self.data.ctrl
 
         actuator_length = self.data.actuator_length
         error = ctrl - actuator_length
@@ -181,22 +179,12 @@ class HumanoidEnv(MujocoEnv, gym.utils.EzPickle):
         
         joint_torques = kp*error + kd*error_dot
 
-        
         return joint_torques
 
     def step(self, action):
 
         return self.task.step(action)
 
-    # def step(self, action):
-        
-    #     coefficient = self.robot.get_ctrl_ranges()[:,1] # This is the maximum value of the control range. NOTE that I can do this because the control range is symmetric.
-    #     #coefficient = np.array([200,200,200,300,40,200,200,200,300,40,200,40,40,18,18,40,40,18,18])
-    #     #print("[DEBUG basic_env_elements]: action_before:", action)
-    #     action = action * coefficient
-    #     #print("[DEBUG basic_env_elements]: action:", action)
-        
-    #     return self.task.step(action)
 
     def reset_model(self):
         mujoco.mj_resetDataKeyframe(self.model, self.data, self.keyframe)

@@ -9,6 +9,7 @@ class H1:
     def __init__(self, env=None):
         self._env = env
 
+        # TODO(my-rice): These values are hardcoded for now. We need to find a better way to get these values.
         self.kp = np.array([200, 200, 200, 300, 40, 200, 200, 200, 300, 40, 300, 100, 100, 100, 100, 100, 100, 100, 100])
         self.kd = np.array([5, 5, 5, 6, 2, 5, 5, 5, 6, 2, 6, 2, 2, 2, 2, 2, 2, 2, 2])
 

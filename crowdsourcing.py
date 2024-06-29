@@ -4,6 +4,8 @@ import math
 from abc import ABC, abstractmethod
 # Applying the strategy design pattern
 
+N_SAMPLES = 20
+
 class CostFunction(ABC):
     """Abstract class for cost functions."""
     @abstractmethod
@@ -12,7 +14,8 @@ class CostFunction(ABC):
 class Sources(ABC):
     """Abstract class to define the policy sources."""
     @abstractmethod
-    def return_sources():
+    def return_sources(state: np.array):
+        """Return the sources for the given state."""
         pass
 
     @abstractmethod
@@ -20,7 +23,7 @@ class Sources(ABC):
         pass
 
     @abstractmethod
-    def sample_points(self,xStart,i:int = 0,num_points: int = 1):
+    def sample_points(self,i:int = 0,num_points: int = 1):
         """Samples points from the sources."""
         pass
 
@@ -137,9 +140,19 @@ class CrowdSourcing:
     #     pf = sources[indMin, xInd] #Pick pf
     #     return(np.random.choice(range(full_state_space_dim), p = pf)) #Sample pf and return resulting state
 
+    def __DKL(self, l1, l2):
+        """Calculates the Kullback-Leibler divergence between two arrays."""
+        x = 0
+        for i in range(len(l1)):
+            if l1[i] != 0 and l2[i] != 0:
+                x = x + l1[i] * math.log(l1[i] / l2[i])
+            if l2[i] == 0 and l1[i] != 0:
+                return math.inf
+        return x
+
     def execute_greedy(self, x):
         """Executes the greedy algorithm."""
-        sources = self.sources.return_sources()
+        sources = self.sources.return_sources(x)
         num_sources = len(sources)
         obs_space = len(x)
         weights = np.zeros((num_sources, obs_space))
@@ -152,14 +165,13 @@ class CrowdSourcing:
             # calculate the expected cost given the state x and the source i
 
             # To calculate the expected reward we need to calculate the expected cost through the monte carlo method
-
-            n_samples = 20
-            samples = self.sources.sample_points(x, i, n_samples)
+            
+            samples = self.sources.sample_points(x, i, N_SAMPLES)
             # calculate the expected cost
             expected_cost = 0
             for s in samples:
                 expected_cost += self.cost_function.cost_function(s)
-            expected_cost /= n_samples
+            expected_cost /= N_SAMPLES
 
             weights[i] -= expected_cost
 
@@ -167,31 +179,3 @@ class CrowdSourcing:
         min_index = np.argmin(weights)
         return sources[min_index]
             
-
-        
-
-
-if __name__ == "__main__":
-    # Create the cost function
-    class QuadraticCostFunction(CostFunction):
-        def cost_function(x: np.array):
-            return np.dot(x, x)
-
-    # Create the sources
-    class Sources(Sources):
-        def return_sources():
-            return [1, 2, 3, 4, 5, 6]
-        
-        def get_relative_state_space_dimension():
-            return 5
-
-    # Create the target behavior
-    class TargetBehavior(TargetBehavior):
-        def target_behavior():
-            return 0
-
-    # Create the crowd sourcing object
-    crowd_sourcing = CrowdSourcing(QuadraticCostFunction, Sources, TargetBehavior)
-    x = np.zeros(19) 
-    crowd_sourcing.execute_greedy(x)
-    

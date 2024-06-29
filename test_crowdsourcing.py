@@ -2,7 +2,6 @@
 import numpy as np
 from crowdsourcing import CostFunction, Sources, TargetBehavior, CrowdSourcing
 
-
 import os
 import sys
 if sys.platform != "darwin":
@@ -20,8 +19,8 @@ from tdmpc2.common.seed import set_seed
 from tdmpc2.envs import make_env
 from tdmpc2.tdmpc2 import TDMPC2
 
-import numpy as np
 from scipy.stats import multivariate_normal
+
 
 class QuadraticCostFunction(CostFunction):
     def cost_function(x: np.array):
@@ -46,7 +45,7 @@ class Sources(Sources):
 
     def add_source_from_action(self, action: np.array):
         # I want to create a gaussian source centered in the action and with a certain variance 
-        return self.create_multivariate_gaussian_function(action, 0.1)
+        self.sources.append(self.create_multivariate_gaussian_function(action, 0.1))
 
     def create_multivariate_gaussian_function(self,action:np.array, variance: float): # TODO: Consider moving this to a utility class with many other typical functions
         """
@@ -72,8 +71,6 @@ class Sources(Sources):
 class TargetBehavior(TargetBehavior):
     def target_behavior():
         return 0
-
-import os
 
 def load_agents(cfg):
     assert os.path.exists(cfg.crowdsource_sources_path), f"Crowdsource Sources Path: {cfg.crowdsource_sources_path} not found! Must be a valid filepath."
@@ -135,8 +132,20 @@ def run(cfg: dict):
             for agent in agents:
                 action_list.append(agent.act(obs, t0=t == 0, task=task_idx))
             
+            next_state = action2state(action_list)
+            # I need to create a function that returns the sources
+            sources = Sources()
+            sources.add_source_from_action(next_state)
 
-            
+            # I need to create a function that returns the target behavior
+            target_behavior = TargetBehavior()
+            target_behavior.target_behavior()
+
+            # Create the crowd sourcing object
+            crowd_sourcing = CrowdSourcing(QuadraticCostFunction, sources, target_behavior)
+            x = np.zeros(19)
+            crowd_sourcing.execute_greedy(x)
+            action = x
             
 
             ########

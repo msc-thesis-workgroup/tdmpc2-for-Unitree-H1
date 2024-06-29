@@ -6,6 +6,18 @@ from abc import ABC, abstractmethod
 
 N_SAMPLES = 20
 
+from scipy.integrate import quad
+
+def kl_divergence_continuous(p, q, lower_bound, upper_bound):
+    integrand = lambda x: p(x) * np.log(p(x) / q(x))
+    result, _ = quad(integrand, lower_bound, upper_bound)
+    return result
+
+def kl_divergence_monte_carlo_continuous(p, q,num_samples):
+    samples = p.sample(num_samples)
+
+
+
 class CostFunction(ABC):
     """Abstract class for cost functions."""
     @abstractmethod
@@ -161,7 +173,7 @@ class CrowdSourcing:
         # check if the target is compatible with the observation space
 
         for i in range(num_sources):
-            weights[i] = self.__DKL(sources[i], target) # Is this the correct way to calculate the DKL between two pfs?
+            weights[i] = kl_divergence_continuous(sources[i], target, 0, 1)
             # calculate the expected cost given the state x and the source i
 
             # To calculate the expected reward we need to calculate the expected cost through the monte carlo method

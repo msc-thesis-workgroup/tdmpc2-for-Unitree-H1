@@ -23,9 +23,14 @@ class Task:
         return None
 
     def get_obs(self):
+        print("[DEBUG] basic_task.py: get_obs() called")
+        print("[DEBUG] basic_task.py: self._env.data.qpos: ", self._env.data.qpos)
+        print("[DEBUG] basic_task.py: self._env.data.qvel: ", self._env.data.qvel)
         position = self._env.data.qpos.flat.copy()
         velocity = self._env.data.qvel.flat.copy()
         state = np.concatenate((position, velocity))
+        print("[DEBUG] basic_task.py: len(state): ", len(state))
+        print("[DEBUG] basic_task.py: state: ", state)
         return state
 
     def get_reward(self):

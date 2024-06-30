@@ -38,18 +38,6 @@ class Walk(Task):
 
     def get_reward(self):
 
-        #print("[DEBUG basic_locomotion_tasks]: ctrl_ranges:", ctrl_ranges)
-        # print("[DEBUG basic_locomotion_tasks]: self.robot.head_height():", self.robot.head_height())
-        # print("[DEBUG basic_locomotion_tasks]: self.robot.left_foot_height():", self.robot.left_foot_height())
-        # print("[DEBUG basic_locomotion_tasks]: self.robot.right_foot_height():", self.robot.right_foot_height())
-        # print("[DEBUG basic_locomotion_tasks]: self.robot.torso_upright():", self.robot.torso_upright())
-        # print("[DEBUG basic_locomotion_tasks]: self.robot.center_of_mass_position():", self.robot.center_of_mass_position())
-        # print("[DEBUG basic_locomotion_tasks]: self.robot.torso_vertical_orientation():", self.robot.torso_vertical_orientation())
-        # print("[DEBUG basic_locomotion_tasks]: self.robot.joint_angles():", self.robot.joint_angles())
-        # print("[DEBUG basic_locomotion_tasks]: self.robot.joint_velocities():", self.robot.joint_velocities())
-        # print("[DEBUG basic_locomotion_tasks]: self.robot.control():", self.robot.control())
-        # print("[DEBUG basic_locomotion_tasks]: self.robot.actuator_forces():", self.robot.actuator_forces())
-        
         standing = rewards.tolerance(
             self.robot.head_height(),
             bounds=(_STAND_HEIGHT, float("inf")),
@@ -123,8 +111,10 @@ class Walk(Task):
         #print("[DEBUG basic_locomotion_tasks]: action:", action)
         #action = self.unnormalize_action(action)
         #print("[DEBUG basic_locomotion_tasks]: unnormalized action:", action)
-        action_high = np.array([0.43, 0.43, 2.53, 2.05, 0.52, 0.43, 0.43, 2.53, 2.05, 0.52, 2.35, 2.87, 3.11, 4.45, 2.61, 2.87, 0.34, 1.3, 2.61])
-        action_low = np.array([-0.43, -0.43, -3.14, -0.26, -0.87, -0.43, -0.43, -3.14, -0.26, -0.87, -2.35, -2.87, -0.34, -1.3,  -1.25, -2.87, -3.11, -4.45, -1.25])
+
+        action_high = self.robot.get_upper_limits()
+        action_low = self.robot.get_lower_limits()
+
         desired_joint_position = (action + 1) / 2 * (action_high - action_low) + action_low
         
         action = self._env.get_joint_torques(desired_joint_position)

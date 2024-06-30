@@ -13,10 +13,24 @@ class H1:
         self.kp = np.array([200, 200, 200, 300, 40, 200, 200, 200, 300, 40, 300, 100, 100, 100, 100, 100, 100, 100, 100])
         self.kd = np.array([5, 5, 5, 6, 2, 5, 5, 5, 6, 2, 6, 2, 2, 2, 2, 2, 2, 2, 2])
 
+        # Joint limits expressed as angular positions
+        self.upper_joint_limits = np.array([0.43, 0.43, 2.53, 2.05, 0.52, 0.43, 0.43, 2.53, 2.05, 0.52, 2.35, 2.87, 3.11, 4.45, 2.61, 2.87, 0.34, 1.3, 2.61])
+        self.lower_joint_limits = np.array([-0.43, -0.43, -3.14, -0.26, -0.87, -0.43, -0.43, -3.14, -0.26, -0.87, -2.35, -2.87, -0.34, -1.3,  -1.25, -2.87, -3.11, -4.45, -1.25])
+        
+    def get_upper_limits(self):
+        """Returns the upper limits of the joints. These are the maximum angular positions that the joints can reach."""
+        return self.upper_joint_limits
+
+    def get_lower_limits(self):
+        """Returns the lower limits of the joints. These are the minimum angular positions that the joints can reach."""
+        return self.lower_joint_limits
+
     def get_kp(self):
+        """Returns the proportional gains for the joints."""
         return self.kp
     
     def get_kd(self):
+        """Returns the derivative gains for the joints."""
         return self.kd
 
     def torso_upright(self):

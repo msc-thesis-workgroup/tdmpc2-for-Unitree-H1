@@ -4,7 +4,7 @@ import numpy as np
 import mujoco
 
 #from humanoid_bench.mjx.flax_to_torch import TorchModel, TorchPolicy
-from envs.tasks.basic_task import Task
+from envs.tasks.task import Task
 
 
 # def get_body_idxs(model):

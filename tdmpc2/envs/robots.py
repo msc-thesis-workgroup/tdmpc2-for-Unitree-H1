@@ -109,46 +109,24 @@ class H1:
         """Returns a copy of the forces applied by the actuators."""
         return self._env.data.actuator_force.copy()
 
-    def left_hand_position(self):
-        return self._env.named.data.site_xpos["left_hand"]
+    # def left_hand_position(self):
+    #     return self._env.named.data.site_xpos["left_hand"]
 
-    def left_hand_velocity(self):
-        return self._env.named.data.sensordata["left_hand_subtreelinvel"].copy()
+    # def left_hand_velocity(self):
+    #     return self._env.named.data.sensordata["left_hand_subtreelinvel"].copy()
 
-    def left_hand_orientation(self):
-        return self._env.named.data.site_xmat["left_hand"]
+    # def left_hand_orientation(self):
+    #     return self._env.named.data.site_xmat["left_hand"]
 
-    def right_hand_position(self):
-        return self._env.named.data.site_xpos["right_hand"]
+    # def right_hand_position(self):
+    #     return self._env.named.data.site_xpos["right_hand"]
 
-    def right_hand_velocity(self):
-        return self._env.named.data.sensordata["right_hand_subtreelinvel"].copy()
+    # def right_hand_velocity(self):
+    #     return self._env.named.data.sensordata["right_hand_subtreelinvel"].copy()
 
-    def right_hand_orientation(self):
-        return self._env.named.data.site_xmat["right_hand"]
+    # def right_hand_orientation(self):
+    #     return self._env.named.data.site_xmat["right_hand"]
 
-    def debug(self):
-        print("#### PRINTING DEBUG ####")
-        # print("named.data", dir(self._env.named.data))
-        # print("named.data.actuator_force", dir(self._env.named.data.actuator_force))
-        # print("named.data.actuator_force", self._env.named.data.actuator_force)
-
-        # for attr in dir(self._env.named.data):
-        #     print(f"{attr}: {getattr(self._env.named.data, attr)}")
-
-        print("test", self.body_velocity())
-
-        # print("len self._env.named.data.xmat", self._env.named.data.xmat)
-        # print("self._env.named.data.xpos", self._env.named.data.xpos)
-        # print("len self._env.named.data.xquat", self._env.named.data.xquat)
-        # print("len self._env.named.data.site_xpos", self._env.named.data.site_xpos)
-        # print("len self._env.named.data.subtree_com", self._env.named.data.subtree_com)
-        # print("len self._env.named.data.sensordata", self._env.named.data.sensordata)
-        # print("len self._env.data.qpos", self._env.data.qpos)
-        # print("len self._env.data.qvel", self._env.data.qvel)
-        # print("len self._env.data.ctrl", self._env.data.ctrl)
-        # print("len self._env.data.actuator_force", self._env.data.actuator_force)
-        print("#### END PRINTING DEBUG ####")
         
 
 class H1Hand(H1):

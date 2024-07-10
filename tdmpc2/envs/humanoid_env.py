@@ -160,9 +160,11 @@ class HumanoidEnv(MujocoEnv, gym.utils.EzPickle):
     def get_joint_torques(self,ctrl):
         
         # TODO(my-rice): I need to change this. The kp and kd values are hard coded. I need to take them from the specific robot class. (from robots.py)
-        kp = np.array([200, 200, 200, 300, 40, 200, 200, 200, 300, 40, 300, 100, 100, 100, 100, 100, 100, 100, 100])
-        kd = np.array([5, 5, 5, 6, 2, 5, 5, 5, 6, 2, 6, 2, 2, 2, 2, 2, 2, 2, 2])
+        # kp = np.array([200, 200, 200, 300, 40, 200, 200, 200, 300, 40, 300, 100, 100, 100, 100, 100, 100, 100, 100])
+        # kd = np.array([5, 5, 5, 6, 2, 5, 5, 5, 6, 2, 6, 2, 2, 2, 2, 2, 2, 2, 2])
         
+        kp = self.robot.get_kp()
+        kd = self.robot.get_kd()
 
         self.data.ctrl = ctrl
 
@@ -185,6 +187,8 @@ class HumanoidEnv(MujocoEnv, gym.utils.EzPickle):
 
         return self.task.step(action)
 
+    def mock_next_state(self, action):
+        return self.task.mock_next_state(action)
 
     def reset_model(self):
         mujoco.mj_resetDataKeyframe(self.model, self.data, self.keyframe)

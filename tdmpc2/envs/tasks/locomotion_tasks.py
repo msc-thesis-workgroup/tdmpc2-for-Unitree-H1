@@ -127,6 +127,23 @@ class Walk(Task):
 
         info = {"per_timestep_reward": reward, **reward_info, **terminated_info}
         return obs, reward, terminated, False, info
+    
+    def mock_next_state(self, action):
+
+        data = copy.deepcopy(self._env.data)
+        model = copy.deepcopy(self._env.model)
+
+
+        data.ctrl[:] = action
+
+        mujoco.mj_step(model, data, self._env.frame_skip)
+
+        # As of MuJoCo 2.0, force-related quantities like cacc are not computed
+        # unless there's a force sensor in the model.
+        # See https://github.com/openai/gym/issues/1541
+        mujoco.mj_rnePostConstraint(model, data)
+
+        return np.concatenate((data.qpos.flat.copy(),data.qvel.flat.copy())) 
 
 
 class Stand(Walk):

@@ -2,20 +2,21 @@ import numpy as np
 import math
 
 from abc import ABC, abstractmethod
-# Applying the strategy design pattern
 
 N_SAMPLES = 20
 
 from scipy.integrate import quad
 
-def kl_divergence_continuous(p, q, lower_bound, upper_bound):
-    integrand = lambda x: p(x) * np.log(p(x) / q(x))
-    result, _ = quad(integrand, lower_bound, upper_bound)
-    return result
+def kl_divergence_continuous(p, q, lower_bound: np.array, upper_bound:np.array):
+    """Calculates the Kullback-Leibler divergence between two continuous distributions."""
+    kl_div = 0
+    for i in range(len(p)):
+        kl_div += quad(lambda x: p[i](x) * math.log(p[i](x) / q[i](x)), lower_bound[i], upper_bound[i])
+    return kl_div
+    
 
 def kl_divergence_monte_carlo_continuous(p, q,num_samples):
     samples = p.sample(num_samples)
-
 
 
 class CostFunction(ABC):
@@ -91,10 +92,7 @@ class CrowdSourcing:
 
 
     #     for i in range(len(S)):
-                
-                
-                
-                
+             
     #         x_k = xStart
 
     #         r_hat[x_k] = -min(weights[x_k])
@@ -171,9 +169,12 @@ class CrowdSourcing:
         target = self.target_behavior.target_behavior()
 
         # check if the target is compatible with the observation space
-
+        
+        lower_bound = sources.lower_bound
+        upper_bound = sources.upper_bound
         for i in range(num_sources):
-            weights[i] = kl_divergence_continuous(sources[i], target, 0, 1)
+            
+            weights[i] = kl_divergence_continuous(sources[i], target, lower_bound, upper_bound)
             # calculate the expected cost given the state x and the source i
 
             # To calculate the expected reward we need to calculate the expected cost through the monte carlo method
@@ -189,5 +190,5 @@ class CrowdSourcing:
 
         # select the source with the minimum weight
         min_index = np.argmin(weights)
-        return sources[min_index]
+        return min_index
             

@@ -31,6 +31,9 @@ class Sources(Sources):
 
     def __init__(self):
         self.sources = []
+        self.upper_joint_limits = np.array([0.43, 0.43, 2.53, 2.05, 0.52, 0.43, 0.43, 2.53, 2.05, 0.52, 2.35, 2.87, 3.11, 4.45, 2.61, 2.87, 0.34, 1.3, 2.61])
+        self.lower_joint_limits = np.array([-0.43, -0.43, -3.14, -0.26, -0.87, -0.43, -0.43, -3.14, -0.26, -0.87, -2.35, -2.87, -0.34, -1.3,  -1.25, -2.87, -3.11, -4.45, -1.25])
+        
     def return_sources(self, state: np.array):
         
         return self.sources
@@ -38,8 +41,21 @@ class Sources(Sources):
     def get_relative_state_space_dimension(self):
         pass
 
+    @property
+    def lower_bound(self):
+        lower_bound_limits = np.concatenate((np.zeros(7),self.lower_joint_limits,np.zeros(25)))
+        return lower_bound_limits
+    
+    @property
+    def upper_bound(self):
+        max_velocity = 5
+        upper_bound_limits = np.concatenate((np.zeros(7),self.upper_joint_limits,np.full(25,max_velocity)))
+        return upper_bound_limits
+
+
     def sample_points(self,xStart,i:int = 0,num_points: int = 1):
         """Samples points from the sources."""
+        pass
         
         
 
@@ -89,12 +105,19 @@ def load_agents(cfg):
     
     return agents
 
+def action2state(action_list: list, env):
+    assert len(action_list) > 0, "Action list must not be empty."
+    next_states = []
+    for action in action_list:
+        next_states.append(env.mock_next_state(action))
+    return next_states
+
+
 @hydra.main(config_name="config", config_path=".")
 def run(cfg: dict):
     # Create the cost function
 
     assert torch.cuda.is_available()
-    assert cfg.eval_episodes > 0, "Must evaluate at least 1 episode."
     cfg = parse_cfg(cfg)
     set_seed(cfg.seed)
 
@@ -132,20 +155,22 @@ def run(cfg: dict):
             for agent in agents:
                 action_list.append(agent.act(obs, t0=t == 0, task=task_idx))
             
-            next_state = action2state(action_list)
+            next_state_list = action2state(action_list,env)
             # I need to create a function that returns the sources
             sources = Sources()
-            sources.add_source_from_action(next_state)
+            sources.add_source_from_action(next_state_list)
 
             # I need to create a function that returns the target behavior
             target_behavior = TargetBehavior()
             target_behavior.target_behavior()
 
+            cost_function = QuadraticCostFunction()
+
             # Create the crowd sourcing object
-            crowd_sourcing = CrowdSourcing(QuadraticCostFunction, sources, target_behavior)
+            crowd_sourcing = CrowdSourcing(cost_function, sources, target_behavior)
             x = np.zeros(19)
-            crowd_sourcing.execute_greedy(x)
-            action = x
+            best_source_id = crowd_sourcing.execute_greedy(x)
+            action = action_list[best_source_id]
             
 
             ########

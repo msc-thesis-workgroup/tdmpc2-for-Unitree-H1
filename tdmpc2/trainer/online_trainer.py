@@ -14,7 +14,7 @@ class OnlineTrainer(Trainer):
 		self._step = 0
 		self._ep_idx = 0
 		self._start_time = time()
-
+		self._starting_step = 0
 		self._buffer_loaded = False
 
 	def set_step(self, step,old_csv=None):
@@ -157,11 +157,13 @@ class OnlineTrainer(Trainer):
 				# if self._step % 5000 == 0:
 				# 	print("[DEBUG: online_trainer.py] acting as agent and not random act")
 				action = self.agent.act(obs, t0=len(self._tds) == 1)
+				#print("action:",action)
 			else:
 				
 				# if self._step % 500 == 0:
 				# 	print("[DEBUG: online_trainer.py] RANDOM ACT")
 				action = self.env.rand_act()
+				#print("random action:",action)
 			obs, reward, done, truncated, info = self.env.step(action)
 			done = done or truncated
 			self._tds.append(self.to_td(obs, action, reward))

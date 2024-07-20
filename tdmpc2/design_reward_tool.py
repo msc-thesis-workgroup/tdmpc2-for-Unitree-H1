@@ -18,7 +18,7 @@ def evaluate(cfg: dict):
     set_seed(cfg.seed)
     
     # Select trainer
-    trainer_cls = OfflineTrainer if cfg.multitask else OnlineTrainer
+    trainer_cls = OfflineTrainer
 
     env=make_env(cfg)
     #reward = env.reward_range

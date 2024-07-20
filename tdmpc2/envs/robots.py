@@ -9,14 +9,40 @@ class H1:
     def __init__(self, env=None):
         self._env = env
 
-        # TODO(my-rice): These values are hardcoded for now. We need to find a better way to get these values.
+        # TODO(my-rice): These values are hardcoded for now. We need to find a better way to get these values. Use a pd controller config file?
         self.kp = np.array([200, 200, 200, 300, 40, 200, 200, 200, 300, 40, 300, 100, 100, 100, 100, 100, 100, 100, 100])
         self.kd = np.array([5, 5, 5, 6, 2, 5, 5, 5, 6, 2, 6, 2, 2, 2, 2, 2, 2, 2, 2])
 
-        # Joint limits expressed as angular positions
+        # Joint limits expressed as angular positions # TODO: Try to get these values from the environment with self._env.model.jnt_range.
         self.upper_joint_limits = np.array([0.43, 0.43, 2.53, 2.05, 0.52, 0.43, 0.43, 2.53, 2.05, 0.52, 2.35, 2.87, 3.11, 4.45, 2.61, 2.87, 0.34, 1.3, 2.61])
         self.lower_joint_limits = np.array([-0.43, -0.43, -3.14, -0.26, -0.87, -0.43, -0.43, -3.14, -0.26, -0.87, -2.35, -2.87, -0.34, -1.3,  -1.25, -2.87, -3.11, -4.45, -1.25])
-        
+
+
+        # self._env.model.jnt_range:          [[ 0.    0.  ]
+        #                                     [-0.43  0.43]
+        #                                     [-0.43  0.43]
+        #                                     [-1.57  1.57]
+        #                                     [-0.26  2.05]
+        #                                     [-0.87  0.52]
+        #                                     [-0.43  0.43]
+        #                                     [-0.43  0.43]
+        #                                     [-1.57  1.57]
+        #                                     [-0.26  2.05]
+        #                                     [-0.87  0.52]
+        #                                     [-2.35  2.35]
+        #                                     [-2.87  2.87]
+        #                                     [-0.34  3.11]
+        #                                     [-1.3   4.45]
+        #                                     [-1.25  2.61]
+        #                                     [-2.87  2.87]
+        #                                     [-3.11  0.34]
+        #                                     [-4.45  1.3 ]
+        #                                     [-1.25  2.61]]
+
+    def get_qpos(self):
+        """Returns the joint positions."""
+        return self._env.data.qpos.copy()
+
     def get_upper_limits(self):
         """Returns the upper limits of the joints. These are the maximum angular positions that the joints can reach."""
         return self.upper_joint_limits

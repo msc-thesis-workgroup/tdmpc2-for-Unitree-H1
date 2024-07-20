@@ -36,7 +36,7 @@ class HumanoidLocomotionWrapper(gym.Wrapper):
         return self.env.render()
 
 
-def register_envs():
+def register_envs(cfg):
     """
     This function registers all the environments made available by this repository.
     """
@@ -51,10 +51,14 @@ def register_envs():
             kwargs["robot"] = robot
             kwargs["control"] = control
             kwargs["task"] = task
+            if "max_episode_steps" in cfg:
+                max_episode_steps = cfg.max_episode_steps
+            else:
+                max_episode_steps = task_info.max_episode_steps
             register(
                 id=f"{robot}-{task}-v0",
                 entry_point="envs.humanoid_env:HumanoidEnv",
-                max_episode_steps=task_info.max_episode_steps,
+                max_episode_steps= max_episode_steps,
                 kwargs=kwargs,
             )
 
@@ -69,7 +73,7 @@ def make_env(cfg):
     if not cfg.task.startswith("humanoid_"):
         raise ValueError("Unknown task:", cfg.task)
 
-    register_envs()
+    register_envs(cfg)
 
     policy_path = cfg.get("policy_path", None)
     mean_path = cfg.get("mean_path", None)
@@ -90,5 +94,20 @@ def make_env(cfg):
         small_obs=small_obs,
     )
     env = HumanoidLocomotionWrapper(env, cfg)
+
+    # get the max_episode_steps from the cfg if it is available
+    if "max_episode_steps" in cfg:
+        print("[DEBUG humanoid_locomotion_wrapper.py]: setting max_episode_steps to", cfg.max_episode_steps)
+        env.env.max_episode_steps = cfg.max_episode_steps
+        env.max_episode_steps = cfg.max_episode_steps
+    
+    if "frame_skip" in cfg:
+        print("[DEBUG humanoid_locomotion_wrapper.py]: setting frame_skip to", cfg.frame_skip)
+        env.env.frame_skip = cfg.frame_skip
+        env.frame_skip = cfg.frame_skip
+
     env.max_episode_steps = env.get_wrapper_attr("_max_episode_steps") #TODO(my-rice): I want to try to use way less episodes. I want to focus on the potential of the reward function. A good reward function should be able to solve the task in a few episodes.
+    
+    print("[DEBUG humanoid_locomotion_wrapper.py]: max_episode_steps:", env.max_episode_steps)
+    print("[DEBUG humanoid_locomotion_wrapper.py]: frame_skip:", env.env.frame_skip)
     return env

@@ -93,7 +93,7 @@ class HumanoidEnv(MujocoEnv, gym.utils.EzPickle):
             height=height,
             camera_name=task_info.camera_name,
         )
-        #print("[DEBUG basic_env_elements]: timestep:",self.model.opt.timestep)
+        print("[DEBUG basic_env_elements]: timestep:",self.model.opt.timestep)
         self.action_high = self.action_space.high
         self.action_low = self.action_space.low
         self.action_space = Box(

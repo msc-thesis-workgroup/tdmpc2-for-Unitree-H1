@@ -1,43 +1,50 @@
+from pyquaternion import Quaternion
+
 import numpy as np
-from scipy.stats import multivariate_normal
 
 
-def create_multivariate_gaussian_function(state:np.array, variance: float): # TODO: Consider moving this to a utility class with many other typical functions
-    """
-    Create a multivariate Gaussian function centered at the given state with the specified variance.
+obs = np.ones(51)*2
+obs[3:7] = np.array([0,0,0,1])
+obs[0:3] = np.array([-1,-1,0.98])
 
-    Parameters:
-    - state: A NumPy array of length 59, serving as the mean of the multivariate Gaussian distribution.
-    - variance: The variance for the Gaussian distribution, applied uniformly across all dimensions.
+obs[26:29] = np.array([-1,-1,0])
+obs[29:32] = np.array([0.01,0.02,0.03])
 
-    Returns:
-    - A function that calculates the multivariate Gaussian distribution's PDF for a given input x.
-    """
-    # Create a covariance matrix with the specified variance along the diagonal
-    covariance_matrix = np.eye(len(state)) * variance
-    
-    # Define the multivariate normal distribution
-    mv_normal = multivariate_normal(mean=state, cov=covariance_matrix)
-    
-    # Return the PDF function of the distribution
-    return mv_normal.pdf
+target_orientation = Quaternion(np.array([1,0,0,0]))
+target_position = np.array([0,0,0.98])
 
-# create the pf 
-state = np.zeros(59)
-variance = 0.1
-pdf = create_multivariate_gaussian_function(state, variance)
+home_orientation = Quaternion(np.array([0,0,0,1])) # qpos0 [3:7]
+#home_orientation = Quaternion(axis=[0, 0, 1], angle=3.14159265 / 2)
+home_position = np.array([0,0,0.98]) # qpos0 [0:3]
 
-pf = pdf(state)
-# normalize the pdf
+# Calculate the transformation matrix from the home orientation to the target orientation
+transformation_quat = target_orientation * home_orientation.inverse
+print("transformation_quat_rotation_matrix: ", transformation_quat.rotation_matrix)
 
-print("PDF:")
-print(pdf)
 
-# take 10000 samples from the pdf
-#x = np.linspace(0, 100, 1000)
-samples = np.random.choice(state, size=(1000,59), p=pdf)
-print("Samples from the pdf:")
-print(samples)
+def generalize_walk_direction(obs):
+    global transformation_quat
 
-print("Mean of the samples:")
-print(samples.mean()) # expected output: 0.0
+    # Adapt to the new observation format
+    current_quat = Quaternion(obs[3:7])  # Convert tensor slice to numpy array for Quaternion
+    current_position = obs[0:3] # Convert tensor slice to numpy array for Quaternion
+
+
+    new_quat = transformation_quat * current_quat
+    new_pos = transformation_quat.rotate(current_position)
+    #df_observations.loc[len(df_observations)] = [current_position, current_quat.q, obs[26:29].numpy(), obs[29:32].numpy()]
+
+    new_vel = transformation_quat.rotate(obs[26:29])
+    new_ang_vel = transformation_quat.rotate(obs[29:32])
+
+    obs[0:3] = new_pos
+    obs[3:7] = new_quat.q
+    obs[26:29] = new_vel
+    obs[29:32] = new_ang_vel
+
+    return obs
+
+
+print("obs:\n", obs)
+new_obs = generalize_walk_direction(obs)
+print("new_obs:\n", new_obs)

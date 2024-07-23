@@ -19,13 +19,20 @@
   <worldbody>
     <light pos="0 0 3.5" dir="0 0 -1" directional="true"/>
     <geom name="floor" size="0 0 0.05" type="plane" material="groundplane"/>
+
+    <!-- Alternative representation of Vector (1,0,0) in red using cylinder -->
+    <geom type="cylinder" fromto="3 3 3 4 3 3" rgba="1 0 0 1" size="0.02"/>
+
+    <!-- Alternative representation of Vector (0,1,0) in green using cylinder -->
+    <geom type="cylinder" fromto="3 3 3 3 4 3" rgba="0 1 0 1" size="0.02"/>
+
   </worldbody>
 
   <keyframe>
     <key name="home"
       qpos="
     0 0 0.98
-    1 0 0 0
+    0 0 0 1
     0 0 -0.4 0.8 -0.4
     0 0 -0.4 0.8 -0.4
     0

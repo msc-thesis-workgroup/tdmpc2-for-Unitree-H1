@@ -19,8 +19,10 @@ from common.seed import set_seed
 from envs import make_env
 from tdmpc2 import TDMPC2
 
+import copy
+import pandas as pd
 torch.backends.cudnn.benchmark = True
-
+from pyquaternion import Quaternion
 
 @hydra.main(config_name="config", config_path=".")
 def evaluate(cfg: dict):
@@ -105,6 +107,9 @@ def evaluate(cfg: dict):
             obs, done, ep_reward, t = env.reset(task_idx=task_idx), False, 0, 0
             #Adapt to the new observation format
             obs = obs[0] if isinstance(obs, tuple) else obs
+            if cfg.generalize_movement:
+                obs = generalize_walk_direction(obs)
+                
             if cfg.save_video:
                 frames = [env.render()]
             while not done:
@@ -113,6 +118,11 @@ def evaluate(cfg: dict):
                 
                 #Adapt to the new observation and done format
                 obs = obs[0] if isinstance(obs, tuple) else obs
+
+                if cfg.generalize_movement:
+                    obs = generalize_walk_direction(obs)
+                    
+
                 done = terminated or truncated
                 ep_reward += reward
                 t += 1
@@ -121,6 +131,9 @@ def evaluate(cfg: dict):
             ep_rewards.append(ep_reward)
             ep_successes.append(info["success"])
             if cfg.save_video:
+
+                df_observations.to_csv( os.path.join(video_dir, f"{task}-{i}.csv"), index=False)
+
                 imageio.mimsave(
                     os.path.join(video_dir, f"{task}-{i}.mp4"), frames, fps=15
                 )
@@ -143,6 +156,170 @@ def evaluate(cfg: dict):
             )
         )
 
+target_orientation = Quaternion(np.array([1,0,0,0]))
+target_position = np.array([0,0,0.98])
 
+home_orientation = Quaternion(np.array([0,0,0,1])) # qpos0 [3:7]
+home_position = np.array([0,0,0.98]) # qpos0 [0:3]
+
+# Calculate the transformation matrix from the home orientation to the target orientation
+transformation_quat = target_orientation * home_orientation.inverse
+transformation_matrix = np.eye(4)
+transformation_matrix[0:3,0:3] = transformation_quat.rotation_matrix
+transformation_matrix[0:3,3] = np.ones(3)*(target_position - home_position)
+transformation_matrix[3,3] = 1
+print("transformation_matrix: ", transformation_matrix)
+print("transformation_quat: ", transformation_quat.rotation_matrix)
+#transformation_matrix[3,0:3] = 0 # It is already it is not necessary to set it to zero 
+
+df_observations = pd.DataFrame(columns=['lin_pos','quat_pos','lin_vel','ang_vel'])
+
+global_frame = Quaternion(np.array([1,0,0,0]))
+global_frame = global_frame.rotation_matrix
+
+# def generalize_walk_direction(obs):
+
+#     global df_observations
+
+#     #print("pose_s:", obs[0:7].numpy(),"vel:", obs[26:32].numpy())
+    
+#     # Adapt to the new observation format
+#     current_quat = Quaternion(obs[3:7].numpy())  # Convert tensor slice to numpy array for Quaternion
+#     current_position = obs[0:3].numpy()  # Convert tensor slice to numpy array for Quaternion
+
+#     #df_observations.loc[len(df_observations)] = [current_position, current_quat.q, obs[26:29].numpy(), obs[29:32].numpy()]
+    
+#     # Convert the position vector to a quaternion with zero scalar part
+#     # pos_quat = Quaternion(np.array([0] + current_position.tolist()))
+    
+    
+#     # # Apply the rotation
+#     # rotated_pos_quat = transformation_quat * pos_quat * transformation_quat.inverse
+
+#     # # Extract the rotated vector from the quaternion
+#     # #print("rotated_pos_quat: ", rotated_pos_quat.q)
+#     # new_pos = np.array(rotated_pos_quat.q[1:])
+
+
+
+#     #new_pos = transformation_quat.rotate(current_position)
+
+#     new_pos = np.dot(transformation_matrix, np.array([current_position.tolist() + [1]]).T)
+#     new_pos = new_pos[0:3].T
+#     # Calculate the new walk direction
+#     new_quat = transformation_quat * current_quat
+    
+
+
+
+#     local_to_global_quat = Quaternion(np.array([0,0,0,1]))*current_quat.inverse
+#     local_to_global_rot = local_to_global_quat.rotation_matrix
+#     local_to_global_transformation = np.eye(4)
+#     local_to_global_transformation[0:3,0:3] = local_to_global_rot
+#     local_to_global_transformation[0:3,3] = current_position
+#     local_to_global_transformation[3,3] = 1
+
+
+#     global_to_new_local_quat = new_quat*Quaternion(np.array([0,0,0,1])).inverse
+#     global_to_new_local_rot = global_to_new_local_quat.rotation_matrix
+#     global_to_new_local_transformation = np.eye(4)
+#     global_to_new_local_transformation[0:3,0:3] = global_to_new_local_rot
+#     global_to_new_local_transformation[0:3,3] = -new_pos #????
+#     global_to_new_local_transformation[3,3] = 1
+    
+
+
+
+
+#     # Convert new_quat.q and new_pos (numpy arrays) to tensors and assign them back to obs
+#     obs[0:3] = torch.from_numpy(new_pos).type_as(obs)
+#     obs[3:7] = torch.from_numpy(new_quat.q).type_as(obs)
+
+#     lin_vel = obs[26:29].numpy()
+#     lin_vel = np.array(transformation_quat.rotate(lin_vel))
+#     obs[26:29] = torch.from_numpy(lin_vel).type_as(obs)
+
+#     ang_vel = obs[29:32].numpy()
+
+#     ang_vel_tilde = np.array(ang_vel.tolist() + [1])
+#     new_ang_vel_tilde = np.dot(global_to_new_local_transformation, np.dot(local_to_global_transformation, ang_vel_tilde))
+    
+
+
+#     ang_vel = new_ang_vel_tilde[0:3]
+#     obs[29:32] = torch.from_numpy(ang_vel).type_as(obs)
+#     #print("pose_f:", obs[0:7].numpy(), obs[26:32].numpy())
+#     return obs
+
+
+# compute the inverse of the rotation matrix
+
+def generalize_walk_direction(obs):
+    global transformation_quat
+    global df_observations
+
+    # Adapt to the new observation format
+    current_quat = Quaternion(obs[3:7].numpy())  # Convert tensor slice to numpy array for Quaternion
+    current_position = obs[0:3].numpy() # Convert tensor slice to numpy array for Quaternion
+
+
+    new_quat = transformation_quat * current_quat
+    new_pos = transformation_quat.rotate(current_position)
+
+    new_vel = transformation_quat.rotate(obs[26:29].numpy())
+    new_ang_vel = transformation_quat.rotate(obs[29:32].numpy())
+
+
+    df_observations.loc[len(df_observations)] = [new_pos, new_quat.q, new_vel, new_ang_vel]
+
+
+    obs[0:3] = torch.from_numpy(new_pos).type_as(obs)
+    obs[3:7] = torch.from_numpy(new_quat.q).type_as(obs)
+    obs[26:29] = torch.from_numpy(new_vel).type_as(obs)
+    #obs[29:32] = torch.from_numpy(new_ang_vel).type_as(obs)
+
+    return obs
+
+
+
+
+
+
+
+
+
+
+
+def generalize_walk_action(action):
+    temp = action
+    action_copy = action.numpy()
+    action = copy.deepcopy(action_copy)
+
+    action[0] = action_copy[5]
+    action[1] = action_copy[6]
+    action[2] = action_copy[7]
+    action[3] = action_copy[8]
+    action[4] = action_copy[9]
+    action[5] = action_copy[0]
+    action[6] = action_copy[1]
+    action[7] = action_copy[2]
+    action[8] = action_copy[3]
+    action[9] = action_copy[4]
+
+    action[11] = action_copy[15]
+    action[12] = action_copy[16]
+    action[13] = action_copy[17]
+    action[14] = action_copy[18]
+    action[15] = action_copy[11]
+    action[16] = action_copy[12]
+    action[17] = action_copy[13]
+    action[18] = action_copy[14]
+
+    # convert to tensor
+    action = torch.from_numpy(action).type_as(temp)
+
+    return action
+
+ 
 if __name__ == "__main__":
     evaluate()

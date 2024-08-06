@@ -9,6 +9,9 @@ from dm_control.utils import rewards
 # Local import
 from .task import Task
 
+from pyquaternion import Quaternion
+from scipy.spatial.transform import Rotation as R
+
 import copy
 # Height of head above which stand reward is 1.
 _STAND_HEIGHT = 1.65
@@ -44,9 +47,11 @@ class Walk(Task):
         # 0.    0.  ]]
 
 
-    _move_speed = _WALK_SPEED
-    htarget_low = np.array([-10.0, -2.0, 0.8])
-    htarget_high = np.array([1000.0, 2.0, 2.0])
+    _move_speed = 1.44 # 5.2 km/h
+    _move_speed_lower_bound = 1.11 # 4 km/h 
+    _move_speed_upper_bound = 1.78 # 6.4 km/h
+    #htarget_low = np.array([-10.0, -2.0, 0.8])
+    #htarget_high = np.array([1000.0, 2.0, 2.0])
     success_bar = 700
 
     @property
@@ -70,7 +75,7 @@ class Walk(Task):
         # Take the indexes of the upper body joints and subtract the offset
         upper_body_joints_idx = np.array(list(upper_body_joints.values())) - offset
         qpos0 = self.robot._env.model.key_qpos[0]
-        print("[DEBUG basic_locomotion_tasks]: qpos0:", qpos0)
+        #print("[DEBUG basic_locomotion_tasks]: qpos0:", qpos0)
 
         #self.ideal_qpos = np.array([qpos0[idx] for idx in upper_body_joints_idx])
         #print("[DEBUG basic_locomotion_tasks]: ideal_qpos:", self.ideal_qpos)
@@ -78,81 +83,14 @@ class Walk(Task):
         for joint_index in upper_body_joints_idx:
             distance = (upper_limits[joint_index] - lower_limits[joint_index])*0.05
             self.upper_body_joints_bounds.update({joint_index+offset : (qpos0[joint_index+offset] - distance, qpos0[joint_index+offset] + distance)})
-            print("index:", joint_index,"ind+off:",joint_index+offset, "upper_limits[index]:", upper_limits[joint_index], "lower_limits[index]:", lower_limits[joint_index], "distance", distance, "qpos0[joint_index+offset]:", qpos0[joint_index+offset])
+            #print("index:", joint_index,"ind+off:",joint_index+offset, "upper_limits[index]:", upper_limits[joint_index], "lower_limits[index]:", lower_limits[joint_index], "distance", distance, "qpos0[joint_index+offset]:", qpos0[joint_index+offset])
 
-        for key, value in self.upper_body_joints_bounds.items():
-            print("[DEBUG basic_locomotion_tasks]: key:", key, "value:", value)
+        # for key, value in self.upper_body_joints_bounds.items():
+        #     print("[DEBUG basic_locomotion_tasks]: key:", key, "value:", value)
+
         
-
-    # def get_reward(self):
-
-    #     #print("[DEBUG basic_locomotion_tasks]: dir(self._env):", dir(self._env), "\ndir(self._env.unwrapped):", dir(self._env.unwrapped))
-    #     #print("[DEBUG basic_locomotion_tasks] dir(self.robot._env.model):", dir(self.robot._env.model))
-    #     #print("[DEBUG basic_locomotion_tasks] dir(self.robot._env.data):", dir(self.robot._env.data))
-    #     #print("env.frame_skip:", self._env.frame_skip, "env.max_episode_lenght:", self._env.unwrapped._max_episode_steps)
-    #     standing = rewards.tolerance(
-    #         self.robot.head_height(),
-    #         bounds=(_STAND_HEIGHT, float("inf")),
-    #         margin=_STAND_HEIGHT / 4,
-    #     )
-    #     upright = rewards.tolerance(
-    #         self.robot.torso_upright(),
-    #         bounds=(0.9, float("inf")),
-    #         sigmoid="linear",
-    #         margin=1.9,
-    #         value_at_margin=0,
-    #     )
-    #     stand_reward = standing * upright
-
-    #     # I want to compute the reward for small control in the following way:
-    #     ctrl_ranges = self.robot.get_ctrl_ranges()
-    #     actuator_forces = np.abs(self.robot.actuator_forces()) # The ctrl range is symmetric, so I can take the absolute value.
-    #     actuator_forces = actuator_forces/ctrl_ranges[:, 1] # I divide by the maximum value of the control range.
-
-
-    #     control_reward = 1 - np.mean(actuator_forces**2) # I want to penalize the control signal. The reward is 1 minus the mean of the normalized control signal.
-    #     small_control = (3 + control_reward) / 4 # I want to give more importance to the other rewards than to the control_reward. It is obvious that the control signal cannot be 0.
-
-    #     reward_upper_body = 0
-    #     joint_position = self.robot.get_qpos()
-    #     for key, (low,high) in self.upper_body_joints_bounds.items():
-    #         #print("[DEBUG basic_locomotion_tasks]: joint_position[i]:", joint_position[key], "low:", low, "high:", high)
-    #         reward_upper_body += rewards.tolerance(
-    #             joint_position[key],
-    #             bounds=(low, high),
-    #             margin=(high - low) / 2,
-    #             sigmoid="gaussian",
-    #         )
+        self.ideal_orientation = Quaternion(np.array([1, 0, 0, 0]))
         
-    #     reward_upper_body = reward_upper_body / len(self.upper_body_joints_bounds)
-
-    #     reward_upper_body = (1 + 2*reward_upper_body) / 3
-
-
-    #     #print("[DEBUG basic_locomotion_tasks]: self.robot.center_of_mass_velocity():", self.robot.center_of_mass_velocity())
-    #     com_velocity = self.robot.center_of_mass_velocity()[0]
-
-
-
-    #     move = rewards.tolerance(
-    #         com_velocity,
-    #         bounds=(self._move_speed, float("inf")),
-    #         margin=self._move_speed,
-    #         value_at_margin=0,
-    #         sigmoid="linear",
-    #     )
-    #     move = (5 * move + 1) / 6
-        
-    #     reward = small_control * stand_reward * move * reward_upper_body
-    #     #print("[DEBUG basic_locomotion_tasks]: reward:", reward, "stand_reward:", stand_reward, "small_control:", small_control, "move:", move, "upper_body:", reward_upper_body)
-    #     return reward, {
-    #         "stand_reward": stand_reward,
-    #         "small_control": small_control,
-    #         "move": move,
-    #         "standing": standing,
-    #         "upright": upright,
-    #     }
-
 
     def get_reward(self):
 
@@ -175,50 +113,147 @@ class Walk(Task):
         actuator_forces = np.abs(self.robot.actuator_forces()) # The ctrl range is symmetric, so I can take the absolute value.
         actuator_forces = actuator_forces/ctrl_ranges[:, 1] # I divide by the maximum value of the control range.
 
-        # if np.max(actuator_forces) > 1:
-        #     print("[DEBUG basic_locomotion_tasks] ERROR actuator_forces:", actuator_forces, "ctrl_ranges:", ctrl_ranges, "actuator_forces/ctrl_ranges[:, 1]:", actuator_forces/ctrl_ranges[:, 1])
-        #     os.exit(0)
+
         control_reward = 1 - np.mean(actuator_forces**2) # I want to penalize the control signal. The reward is 1 minus the mean of the normalized control signal.
-        small_control = (3 + control_reward) / 4 # I want to give more importance to the other rewards than to the control_reward. It is obvious that the control signal cannot be 0.
+        small_control = control_reward
+        #small_control = (3 + control_reward) / 4 # I want to give more importance to the other rewards than to the control_reward. It is obvious that the control signal cannot be 0.
 
-        # small_control = rewards.tolerance(
-        #     self.robot.actuator_forces(),
-        #     margin=10,
-        #     value_at_margin=0,
-        #     sigmoid="quadratic",
-        # ).mean()
-        # small_control = (4 + small_control) / 5
-
-        if self._move_speed == 0:
-            horizontal_velocity = self.robot.center_of_mass_velocity()[[0, 1]]
-            dont_move = rewards.tolerance(horizontal_velocity, margin=2).mean()
-            return small_control * stand_reward * dont_move, {
-                "small_control": small_control,
-                "stand_reward": stand_reward,
-                "dont_move": dont_move,
-                "standing": standing,
-                "upright": upright,
-            }
-        else:
-            com_velocity = self.robot.center_of_mass_velocity()[0]
-            move = rewards.tolerance(
-                com_velocity,
-                bounds=(self._move_speed, float("inf")),
-                margin=self._move_speed,
-                value_at_margin=0,
-                sigmoid="linear",
+        reward_upper_body = 0
+        joint_position = self.robot.get_qpos()
+        for key, (low,high) in self.upper_body_joints_bounds.items():
+            #print("[DEBUG basic_locomotion_tasks]: joint_position[i]:", joint_position[key], "low:", low, "high:", high)
+            reward_upper_body += rewards.tolerance(
+                joint_position[key],
+                bounds=(low, high),
+                margin=(high - low) / 2,
+                sigmoid="gaussian",
             )
-            move = (5 * move + 1) / 6
+        
+        reward_upper_body = reward_upper_body / len(self.upper_body_joints_bounds)
+
+        #reward_upper_body = (1 + 2*reward_upper_body) / 3
+
+
+        #print("[DEBUG basic_locomotion_tasks]: self.robot.center_of_mass_velocity():", self.robot.center_of_mass_velocity())
+        com_velocity_x = self.robot.center_of_mass_velocity()[0] # I take only the x component of the velocity.
+
+        com_position_y = self.robot.center_of_mass_position()[1] # I take only the y component of the position.
+
+        move = rewards.tolerance(
+            com_velocity_x,
+            bounds=(self._move_speed_lower_bound, self._move_speed_upper_bound),
+            margin=self._move_speed/3,
+            value_at_margin=0.1,
+            sigmoid="gaussian",
+        ) 
+        #print("[DEBUG basic_locomotion_tasks]: self.robot.center_of_mass_velocity():", com_position_y)
+        
+        centered_reward = rewards.tolerance(
+            com_position_y,
+            bounds=(-0.3, 0.3),
+            margin=0.2,
+            value_at_margin=0.1,
+            sigmoid="linear",
+        )
+        
+        orientation_quat = self.robot.robot_orientation()
+        rotation = R.from_quat(orientation_quat.tolist(), scalar_first=True)
+        angles = rotation.as_euler('zyx', degrees=True)
+        angle_x = angles[0]
+
+        stay_inline_reward = rewards.tolerance(
+            angle_x,
+            bounds=(-10, 10),
+            margin=10,
+            value_at_margin=0.1,
+            sigmoid="linear",
+        )
+
+
+        #move = (2*move + centered_reward + stay_inline_reward)/4
+
+        #move = (5 * move + 1) / 6
+        
+
+        reward = stand_reward*(small_control + 3*move + reward_upper_body + centered_reward + stay_inline_reward)/3
+
+
+        #reward = stand_reward*(2*small_control + 5*move + 2*reward_upper_body)/9
+        #print("[DEBUG basic_locomotion_tasks]: reward:", reward, "stand_reward:", stand_reward, "small_control:", small_control, "move:", move, "upper_body:", reward_upper_body)
+        return reward, {
+            "stand_reward": stand_reward,
+            "small_control": small_control,
+            "move": move,
+            "standing": standing,
+            "upright": upright,
+        }
+
+
+    # def get_reward(self):
+
+    #     standing = rewards.tolerance(
+    #         self.robot.head_height(),
+    #         bounds=(_STAND_HEIGHT, float("inf")),
+    #         margin=_STAND_HEIGHT / 4,
+    #     )
+    #     upright = rewards.tolerance(
+    #         self.robot.torso_upright(),
+    #         bounds=(0.9, float("inf")),
+    #         sigmoid="linear",
+    #         margin=1.9,
+    #         value_at_margin=0,
+    #     )
+    #     stand_reward = standing * upright
+
+    #     # I want to compute the reward for small control in the following way:
+    #     ctrl_ranges = self.robot.get_ctrl_ranges()
+    #     actuator_forces = np.abs(self.robot.actuator_forces()) # The ctrl range is symmetric, so I can take the absolute value.
+    #     actuator_forces = actuator_forces/ctrl_ranges[:, 1] # I divide by the maximum value of the control range.
+
+    #     # if np.max(actuator_forces) > 1:
+    #     #     print("[DEBUG basic_locomotion_tasks] ERROR actuator_forces:", actuator_forces, "ctrl_ranges:", ctrl_ranges, "actuator_forces/ctrl_ranges[:, 1]:", actuator_forces/ctrl_ranges[:, 1])
+    #     #     os.exit(0)
+    #     control_reward = 1 - np.mean(actuator_forces**2) # I want to penalize the control signal. The reward is 1 minus the mean of the normalized control signal.
+    #     small_control = (3 + control_reward) / 4 # I want to give more importance to the other rewards than to the control_reward. It is obvious that the control signal cannot be 0.
+
+    #     # small_control = rewards.tolerance(
+    #     #     self.robot.actuator_forces(),
+    #     #     margin=10,
+    #     #     value_at_margin=0,
+    #     #     sigmoid="quadratic",
+    #     # ).mean()
+    #     # small_control = (4 + small_control) / 5
+
+    #     if self._move_speed == 0:
+    #         horizontal_velocity = self.robot.center_of_mass_velocity()[[0, 1]]
+    #         dont_move = rewards.tolerance(horizontal_velocity, margin=2).mean()
+    #         return small_control * stand_reward * dont_move, {
+    #             "small_control": small_control,
+    #             "stand_reward": stand_reward,
+    #             "dont_move": dont_move,
+    #             "standing": standing,
+    #             "upright": upright,
+    #         }
+    #     else:
+    #         com_velocity = self.robot.center_of_mass_velocity()[0]
+    #         move = rewards.tolerance(
+    #             com_velocity,
+    #             bounds=(self._move_speed, float("inf")),
+    #             margin=self._move_speed,
+    #             value_at_margin=0,
+    #             sigmoid="linear",
+    #         )
+    #         move = (5 * move + 1) / 6
             
-            reward = small_control * stand_reward * move
-            #print("[DEBUG basic_locomotion_tasks]: reward:", reward, "stand_reward:", stand_reward, "small_control:", small_control, "move:", move, "standing:", standing, "upright:", upright)
-            return reward, {
-                "stand_reward": stand_reward,
-                "small_control": small_control,
-                "move": move,
-                "standing": standing,
-                "upright": upright,
-            }
+    #         reward = small_control * stand_reward * move
+    #         #print("[DEBUG basic_locomotion_tasks]: reward:", reward, "stand_reward:", stand_reward, "small_control:", small_control, "move:", move, "standing:", standing, "upright:", upright)
+    #         return reward, {
+    #             "stand_reward": stand_reward,
+    #             "small_control": small_control,
+    #             "move": move,
+    #             "standing": standing,
+    #             "upright": upright,
+    #         }
 
 
     def _print_info(self):
@@ -323,7 +358,7 @@ class Walk(Task):
         info = {"per_timestep_reward": reward, **reward_info, **terminated_info}
         return obs, reward, terminated, False, info
     
-    def mock_next_state(self, action):
+    def mock_next_state(self, action): # TODO: Non serve più. Da eliminare.
 
         data = copy.deepcopy(self._env.data)
         model = copy.deepcopy(self._env.model)

@@ -14,7 +14,7 @@ checkpoint: None
 experiment_name: None
 
 eval_episodes: 1
-eval_freq: 30000
+eval_freq: 150000
 
 from_scratch: false
 
@@ -41,7 +41,7 @@ discount_max: 0.995
 buffer_size: 1_000_000
 exp_name: tdmpc
 data_dir: ???
-save_freq: 20_000
+save_freq: 30_000
 
 # planning
 mpc: true
@@ -71,14 +71,14 @@ enc_dim: 256
 num_channels: 32
 mlp_dim: 512
 latent_dim: 512
-task_dim: 96
+task_dim: 96 # I did not understand this parameter. This parameter will be set to 0 by the code. So I don't know what it is for.
 num_q: 5
 dropout: 0.01
 simnorm_dim: 8
 
 # logging
-wandb_project: humanoid-bench
-wandb_entity: robot-learning
+wandb_project: humanoid-bench # change to ???
+wandb_entity: robot-learning # change to ???
 wandb_silent: false
 disable_wandb: true
 save_csv: true
@@ -102,7 +102,7 @@ episode_lengths: ???
 seed_steps: ???
 bin_size: ???
 
-# humanoid envs
+# humanoid envs # TODO: remove this part
 policy_path: ???
 mean_path: ???
 var_path: ???

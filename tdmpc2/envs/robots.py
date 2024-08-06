@@ -133,6 +133,10 @@ class H1:
         # Skip the 7 DoFs of the free root joint.
         return self._env.data.qpos[7 : self.dof].copy() # OK
 
+    def robot_orientation(self):
+        """Returns the orientation of the robot."""
+        return self._env.data.qpos[3:7].copy()
+
     def joint_velocities(self):
         """Returns the joint velocities."""
         return self._env.data.qvel[6 : self.dof].copy() # OK

@@ -1,5 +1,0 @@
-<mujocoinclude>
-    <worldbody>
-        <include file="../locomotion/generated_xml_stairs.xml"/>
-    </worldbody>
-</mujocoinclude>

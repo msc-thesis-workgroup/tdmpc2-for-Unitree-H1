@@ -38,9 +38,9 @@ tau: 0.01
 discount_denom: 5
 discount_min: 0.95
 discount_max: 0.995
-buffer_size: 1_000_000
+buffer_size: 1_000_000 # default: 1_000_000
 exp_name: tdmpc
-data_dir: ???
+data_dir: ??? # This parameter is for the data directory where the data is stored. It is used for the offline RL.
 save_freq: 30_000
 
 # planning
@@ -49,7 +49,7 @@ iterations: 6
 num_samples: 512
 num_elites: 64
 num_pi_trajs: 24
-horizon: 3
+horizon: 3 # default: 3. TODO(my-rice): Try to increase this parameter to 5 or 7
 min_std: 0.05
 max_std: 2
 temperature: 0.5
@@ -77,8 +77,8 @@ dropout: 0.01
 simnorm_dim: 8
 
 # logging
-wandb_project: humanoid-bench # change to ???
-wandb_entity: robot-learning # change to ???
+wandb_project: ???
+wandb_entity: ??? 
 wandb_silent: false
 disable_wandb: true
 save_csv: true
@@ -101,10 +101,3 @@ action_dims: ???
 episode_lengths: ???
 seed_steps: ???
 bin_size: ???
-
-# humanoid envs # TODO: remove this part
-policy_path: ???
-mean_path: ???
-var_path: ???
-policy_type: ???
-small_obs: ???

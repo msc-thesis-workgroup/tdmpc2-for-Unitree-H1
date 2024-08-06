@@ -35,45 +35,45 @@ from envs.tasks.task import Task
 #     return body_idxs, body_vel_idxs
 
 
-class BaseWrapper(Task):
-    def __init__(self, task):
-        self.task = task
-        self.dof = task.dof
-        if not hasattr(task._env, "viewer"):
-            task._env.viewer = task._env.mujoco_renderer._get_viewer(
-                task._env.render_mode
-            )
+# class BaseWrapper(Task):
+#     def __init__(self, task):
+#         self.task = task
+#         self.dof = task.dof
+#         if not hasattr(task._env, "viewer"):
+#             task._env.viewer = task._env.mujoco_renderer._get_viewer(
+#                 task._env.render_mode
+#             )
 
-    def step(self, action):
-        return self.task.step(action)
+#     def step(self, action):
+#         return self.task.step(action)
 
-    def get_obs(self):
-        return self.task.get_obs()
+#     def get_obs(self):
+#         return self.task.get_obs()
 
-    def get_tactile_obs(self):
-        return self.task.get_tactile_obs()
+#     def get_tactile_obs(self):
+#         return self.task.get_tactile_obs()
 
-    def get_camera_obs(self):
-        return self.task.get_camera_obs()
+#     def get_camera_obs(self):
+#         return self.task.get_camera_obs()
 
-    def get_reward(self):
-        return self.task.get_reward()
+#     def get_reward(self):
+#         return self.task.get_reward()
 
-    def get_terminated(self):
-        return self.task.get_terminated()
+#     def get_terminated(self):
+#         return self.task.get_terminated()
 
-    def reset_model(self):
-        self.task.reset_model()
-        return self.get_obs()
+#     def reset_model(self):
+#         self.task.reset_model()
+#         return self.get_obs()
 
-    def normalize_action(self, action):
-        return self.task.normalize_action(action)
+#     def normalize_action(self, action):
+#         return self.task.normalize_action(action)
 
-    def unnormalize_action(self, action):
-        return self.task.unnormalize_action(action)
+#     def unnormalize_action(self, action):
+#         return self.task.unnormalize_action(action)
 
-    def render(self):
-        return self.task.render()
+#     def render(self):
+#         return self.task.render()
 
 
 # class SingleReachWrapper(BaseWrapper):

@@ -67,7 +67,7 @@ class HumanoidEnv(MujocoEnv, gym.utils.EzPickle):
 
         model_path = f"envs/{robot}_{control}_{task}.xml"
         model_path = os.path.join(asset_path, model_path)
-        model_path = "/home/davide/tdmpc2/tdmpc2/unitree_h1/scene.xml" #TODO(my-rice) fix this. You need to change dynamically the path. It must not be hard coded.
+        model_path = "/home/davide/tdmpc2/unitree_h1/scene.xml" #TODO(my-rice) fix this. You need to change dynamically the path. It must not be hard coded.
         print("[DEBUG: basic_locomotion_env] model_path:", model_path)
         self.robot = ROBOTS[robot](self)
         task_info = TASKS[task](self.robot, None, **kwargs)

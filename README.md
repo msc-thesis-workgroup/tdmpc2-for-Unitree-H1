@@ -71,5 +71,12 @@ This project is licensed under the MIT License - see the `LICENSE` file for deta
 
 ## References
 
-The repository contains code from the TD-MPC2 repository, which was the starting point for the project.
-Some of the code was inspired by the HumanoidBench repository. However, the code is not a direct copy of the HumanoidBench repository, there are enough differences between the two repositories to consider them as completely different projects. These differences are necessary for the needs of the project.
+- The repository contains code from the TD-MPC2 repository, which was the starting point for the project.
+
+- The Unitree Robotics H1 robot is a humanoid robot developed by Unitree Robotics. The robot model is taken from MuJoCo Menagerie, which is a collection of MuJoCo environments and models.
+
+- Some of the code was inspired by the HumanoidBench repository. However, the code is not a direct copy of the HumanoidBench repository, there are enough differences between the two repositories to consider them as completely different projects. These differences are necessary for the needs of the project.
+
+## Known issues
+
+When you evaluate the model, the program will save the video correctly, but it will crash in the end. This is due to a bug in the code that will be fixed in the future. The evaluation is still correct, and the video is saved correctly.

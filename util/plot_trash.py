@@ -12,7 +12,7 @@ def str_to_array(s):
     # Convert each element to float and create a numpy array
     return np.array([float(e) for e in elements])
 # Read the CSV file
-df = pd.read_csv(PATH_TO_FILE, converters={'lin_pos': str_to_array, 'quat_pos': str_to_array, 'lin_vel': str_to_array, 'ang_vel': str_to_array})
+df = pd.read_csv(PATH_TO_FILE, converters={'lin_pos': str_to_array})#, 'quat_pos': str_to_array, 'lin_vel': str_to_array, 'ang_vel': str_to_array})
 
 # Plotting
 fig, axs = plt.subplots(4, 1, figsize=(10, 8))
@@ -25,25 +25,25 @@ axs[0].set_title('Linear Position')
 axs[0].legend()
 
 # Quaternion Position
-labels = ['w', 'x', 'y', 'z']
-for i in range(4):
-    axs[1].plot(df.index, df['quat_pos'].apply(lambda x: x[i]), label=f'Component {labels[i]}')
-axs[1].set_title('Quaternion Position')
-axs[1].legend()
+# labels = ['w', 'x', 'y', 'z']
+# for i in range(4):
+#     axs[1].plot(df.index, df['quat_pos'].apply(lambda x: x[i]), label=f'Component {labels[i]}')
+# axs[1].set_title('Quaternion Position')
+# axs[1].legend()
 
 # Linear Velocity
-labels = ['v_x', 'v_y', 'v_z']
-for i in range(3):
-    axs[2].plot(df.index, df['lin_vel'].apply(lambda x: x[i]), label=f'Component {labels[i]}')
-axs[2].set_title('Linear Velocity')
-axs[2].legend()
+# labels = ['v_x', 'v_y', 'v_z']
+# for i in range(3):
+#     axs[2].plot(df.index, df['lin_vel'].apply(lambda x: x[i]), label=f'Component {labels[i]}')
+# axs[2].set_title('Linear Velocity')
+# axs[2].legend()
 
-# Angular Velocity
-labels = ['w_x', 'w_y', 'w_z']
-for i in range(3):
-    axs[3].plot(df.index, df['ang_vel'].apply(lambda x: x[i]), label=f'Component {labels[i]}')
-axs[3].set_title('Angular Velocity')
-axs[3].legend()
+# # Angular Velocity
+# labels = ['w_x', 'w_y', 'w_z']
+# for i in range(3):
+#     axs[3].plot(df.index, df['ang_vel'].apply(lambda x: x[i]), label=f'Component {labels[i]}')
+# axs[3].set_title('Angular Velocity')
+# axs[3].legend()
 
 plt.tight_layout()
 plt.show()

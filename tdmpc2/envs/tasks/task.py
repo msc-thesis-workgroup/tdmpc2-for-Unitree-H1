@@ -2,8 +2,6 @@ import numpy as np
 import gymnasium as gym
 from gymnasium.spaces import Box
 from dm_control.utils import rewards
-import mujoco
-
 
 class Task:
     qpos0_robot = {}

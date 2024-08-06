@@ -1,4 +1,3 @@
-# This file is a modified version of the file in the HumanoidBench repository.
 import mujoco
 import numpy as np
 

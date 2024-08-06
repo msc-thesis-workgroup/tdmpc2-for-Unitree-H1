@@ -425,140 +425,140 @@ class BaseWrapper(Task):
 #         return obs, reward, terminated, False, info
 
 
-class ObservationWrapper(BaseWrapper):
-    def __init__(self, task, **kwargs):
-        super().__init__(task)
+# class ObservationWrapper(BaseWrapper):
+#     def __init__(self, task, **kwargs):
+#         super().__init__(task)
 
-        sensors = kwargs.get("sensors").split(",")
-        self._tactile_ob = "tactile" in sensors
-        self._camera_ob = "image" in sensors
+#         sensors = kwargs.get("sensors").split(",")
+#         self._tactile_ob = "tactile" in sensors
+#         self._camera_ob = "image" in sensors
 
-        if self._tactile_ob:
-            assert (
-                "H1Touch" == task._env.robot.__class__.__name__
-            ), "Tactile observations are only available for H1Touch robot"
+#         if self._tactile_ob:
+#             assert (
+#                 "H1Touch" == task._env.robot.__class__.__name__
+#             ), "Tactile observations are only available for H1Touch robot"
 
-    @property
-    def observation_space(self):
-        proprio_space = Box(
-            low=-np.inf,
-            high=np.inf,
-            shape=(self.task._env.robot.dof * 2 - 1 - 13,),
-            dtype=np.float64,
-        )
+#     @property
+#     def observation_space(self):
+#         proprio_space = Box(
+#             low=-np.inf,
+#             high=np.inf,
+#             shape=(self.task._env.robot.dof * 2 - 1 - 13,),
+#             dtype=np.float64,
+#         )
 
-        if self._camera_ob:
-            image_example = self.get_camera_obs()
-            camera_spaces = [
-                (
-                    key,
-                    Box(
-                        low=0, high=255, shape=image_example[key].shape, dtype=np.uint8
-                    ),
-                )
-                for key in image_example
-            ]
+#         if self._camera_ob:
+#             image_example = self.get_camera_obs()
+#             camera_spaces = [
+#                 (
+#                     key,
+#                     Box(
+#                         low=0, high=255, shape=image_example[key].shape, dtype=np.uint8
+#                     ),
+#                 )
+#                 for key in image_example
+#             ]
 
-        if self._tactile_ob:
-            tactile_example = self.get_tactile_obs()
-            tactile_spaces = [
-                (
-                    key,
-                    Box(
-                        low=-np.inf,
-                        high=np.inf,
-                        shape=tactile_example[key].shape,
-                        dtype=np.float64,
-                    ),
-                )
-                for key in tactile_example
-            ]
+#         if self._tactile_ob:
+#             tactile_example = self.get_tactile_obs()
+#             tactile_spaces = [
+#                 (
+#                     key,
+#                     Box(
+#                         low=-np.inf,
+#                         high=np.inf,
+#                         shape=tactile_example[key].shape,
+#                         dtype=np.float64,
+#                     ),
+#                 )
+#                 for key in tactile_example
+#             ]
 
-        if self._tactile_ob and self._camera_ob:
-            return Dict([("proprio", proprio_space)] + camera_spaces + tactile_spaces)
-        elif self._tactile_ob:
-            return Dict([("proprio", proprio_space)] + tactile_spaces)
-        elif self._camera_ob:
-            return Dict([("proprio", proprio_space)] + camera_spaces)
-        else:
-            return proprio_space
+#         if self._tactile_ob and self._camera_ob:
+#             return Dict([("proprio", proprio_space)] + camera_spaces + tactile_spaces)
+#         elif self._tactile_ob:
+#             return Dict([("proprio", proprio_space)] + tactile_spaces)
+#         elif self._camera_ob:
+#             return Dict([("proprio", proprio_space)] + camera_spaces)
+#         else:
+#             return proprio_space
 
-    def get_obs(self):
-        position = self.task._env.robot.joint_angles()
-        velocity = self.task._env.robot.joint_velocities()
-        state = np.concatenate((position, velocity))
+#     def get_obs(self):
+#         position = self.task._env.robot.joint_angles()
+#         velocity = self.task._env.robot.joint_velocities()
+#         state = np.concatenate((position, velocity))
 
-        tactile = None
-        if self._tactile_ob:
-            tactile = self.get_tactile_obs()
+#         tactile = None
+#         if self._tactile_ob:
+#             tactile = self.get_tactile_obs()
 
-        camera = None
-        if self._camera_ob:
-            camera = self.get_camera_obs()
+#         camera = None
+#         if self._camera_ob:
+#             camera = self.get_camera_obs()
 
-        if tactile and camera:
-            state = dict(
-                [("proprio", state)] + list(tactile.items()) + list(camera.items())
-            )
-        elif tactile:
-            state = dict([("proprio", state)] + list(tactile.items()))
-        elif camera:
-            state = dict([("proprio", state)] + list(camera.items()))
+#         if tactile and camera:
+#             state = dict(
+#                 [("proprio", state)] + list(tactile.items()) + list(camera.items())
+#             )
+#         elif tactile:
+#             state = dict([("proprio", state)] + list(tactile.items()))
+#         elif camera:
+#             state = dict([("proprio", state)] + list(camera.items()))
 
-        return state
+#         return state
 
-    def get_tactile_obs(self):
-        """
-        Touch data is in the form of a dictionary with keys as the sensor names and values as the touch data.
-        The touch data is then reshaped to a 3D array with the first dimension as the number of components (x-y-z),
-        and the second and third dimensions as the touch data in a 2D grid, e.g., np.reshape(touch_data, (3, 2, 4))[[1, 2, 0]]
-        (note that Mujoco returns them in the order z-x-y).
-        """
-        model = self.task._env.model
-        data = self.task._env.data
-        sensor_names = [
-            mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_SENSOR, i)
-            for i in range(model.nsensor)
-        ]
+#     def get_tactile_obs(self):
+#         """
+#         Touch data is in the form of a dictionary with keys as the sensor names and values as the touch data.
+#         The touch data is then reshaped to a 3D array with the first dimension as the number of components (x-y-z),
+#         and the second and third dimensions as the touch data in a 2D grid, e.g., np.reshape(touch_data, (3, 2, 4))[[1, 2, 0]]
+#         (note that Mujoco returns them in the order z-x-y).
+#         """
+#         model = self.task._env.model
+#         data = self.task._env.data
+#         sensor_names = [
+#             mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_SENSOR, i)
+#             for i in range(model.nsensor)
+#         ]
 
-        touch = dict(
-            [
-                ("_".join(["tactile", *name.split("_")[:-1]]), data.sensor(name).data)
-                for i, name in enumerate(sensor_names)
-                if name.endswith("_touch")
-            ]
-        )
+#         touch = dict(
+#             [
+#                 ("_".join(["tactile", *name.split("_")[:-1]]), data.sensor(name).data)
+#                 for i, name in enumerate(sensor_names)
+#                 if name.endswith("_touch")
+#             ]
+#         )
 
-        for key in touch:
-            if key != "tactile_torso":
-                touch[key] = touch[key].reshape(3, 2, 4)[[1, 2, 0]]
-            else:
-                touch[key] = touch[key].reshape(3, 4, 8)[[1, 2, 0]]
+#         for key in touch:
+#             if key != "tactile_torso":
+#                 touch[key] = touch[key].reshape(3, 2, 4)[[1, 2, 0]]
+#             else:
+#                 touch[key] = touch[key].reshape(3, 4, 8)[[1, 2, 0]]
 
-        return touch
+#         return touch
 
-    def step(self, action):
-        _, rew, terminated, truncated, info = self.task.step(action)
-        obs = self.get_obs()
+#     def step(self, action):
+#         _, rew, terminated, truncated, info = self.task.step(action)
+#         obs = self.get_obs()
 
-        return obs, rew, terminated, truncated, info
+#         return obs, rew, terminated, truncated, info
 
-    def get_camera_obs(self):
-        left_eye = self.task._env.mujoco_renderer.render(
-            "rgb_array", camera_name="left_eye_camera"
-        )
-        right_eye = self.task._env.mujoco_renderer.render(
-            "rgb_array", camera_name="left_eye_camera"
-        )
-        return {"image_left_eye": left_eye, "image_right_eye": right_eye}
+#     def get_camera_obs(self):
+#         left_eye = self.task._env.mujoco_renderer.render(
+#             "rgb_array", camera_name="left_eye_camera"
+#         )
+#         right_eye = self.task._env.mujoco_renderer.render(
+#             "rgb_array", camera_name="left_eye_camera"
+#         )
+#         return {"image_left_eye": left_eye, "image_right_eye": right_eye}
 
-    def reset_model(self):
-        return self.get_obs()
+#     def reset_model(self):
+#         return self.get_obs()
 
-    def normalize_action(self, action):
-        return (
-            2
-            * (action - self.task._env.action_low)
-            / (self.task._env.action_high - self.task._env.action_low)
-            - 1
-        )
+#     def normalize_action(self, action):
+#         return (
+#             2
+#             * (action - self.task._env.action_low)
+#             / (self.task._env.action_high - self.task._env.action_low)
+#             - 1
+#         )

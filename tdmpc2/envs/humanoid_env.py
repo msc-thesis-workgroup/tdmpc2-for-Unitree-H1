@@ -9,14 +9,10 @@ from gymnasium.envs.mujoco import MujocoEnv
 from gymnasium.spaces import Box
 from dm_control.mujoco import index
 from dm_control.mujoco.engine import NamedIndexStructs
-from dm_control.utils import rewards
 
 # Local import
 from .wrappers.dmc_wrapper import MjDataWrapper, MjModelWrapper
 
-from .wrappers.wrappers import (
-    ObservationWrapper
-)
 
 from .robots import H1
 
@@ -102,33 +98,7 @@ class HumanoidEnv(MujocoEnv, gym.utils.EzPickle):
 
         self.task = TASKS[task](self.robot, self, **kwargs)
 
-        # Wrap for hierarchical control ### NOTE: I think they are not needed for the basic locomotion tasks.
-        if (
-            "policy_type" in kwargs
-            and kwargs["policy_type"]
-            and kwargs["policy_type"] is not None
-            and kwargs["policy_type"] != "flat"
-        ):
-            raise NotImplementedError("Hierarchical policy is not supported yet.")
-        
-
-            # if kwargs["policy_type"] == "reach_single":
-            #     assert "policy_path" in kwargs and kwargs["policy_path"] is not None
-            #     self.task = SingleReachWrapper(self.task, **kwargs)
-            # elif kwargs["policy_type"] == "reach_double_absolute":
-            #     assert "policy_path" in kwargs and kwargs["policy_path"] is not None
-            #     self.task = DoubleReachAbsoluteWrapper(self.task, **kwargs)
-            # elif kwargs["policy_type"] == "reach_double_relative":
-            #     assert "policy_path" in kwargs and kwargs["policy_path"] is not None
-            #     self.task = DoubleReachRelativeWrapper(self.task, **kwargs)
-            # elif kwargs["policy_type"] == "blocked_hands":
-            #     self.task = BlockedHandsLocoWrapper(self.task, **kwargs)
-            # else:
-            #     raise ValueError(f"Unknown policy_type: {kwargs['policy_type']}")
-        elif self.obs_wrapper: # NOTE: I don't think this is needed for the basic locomotion tasks. But I will keep it for now. #TODO(my-rice) remove this if it is not needed.
-            # Note that observation wrapper is not compatible with hierarchical policy
-            self.task = ObservationWrapper(self.task, **kwargs)
-            self.observation_space = self.task.observation_space
+        self.observation_space = self.task.observation_space
 
         # Keyframe
         self.keyframe = (
@@ -136,11 +106,6 @@ class HumanoidEnv(MujocoEnv, gym.utils.EzPickle):
         )
 
         self.randomness = randomness
-
-        ### NOTE: I will not work with Kitchen, Bookshelf and so on. I will work with the basic locomotion tasks.
-        # if isinstance(self.task, (BookshelfHard, BookshelfSimple, Kitchen, Cube)):
-        #     self.randomness = 0
-        # print(isinstance(self.task, (BookshelfHard, BookshelfSimple, Kitchen, Cube)))
 
         # Set up named indexing.
         data = MjDataWrapper(self.data)
@@ -151,10 +116,10 @@ class HumanoidEnv(MujocoEnv, gym.utils.EzPickle):
             data=index.struct_indexer(data, "mjdata", axis_indexers),
         )
 
-        assert self.robot.dof + self.task.dof == len(data.qpos), (
+        assert self.robot.dof + self.task.dof == len(self.data.qpos), (
             self.robot.dof,
             self.task.dof,
-            len(data.qpos),
+            len(self.data.qpos),
         )
 
     def get_joint_torques(self,ctrl):

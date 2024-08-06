@@ -17,7 +17,9 @@ from termcolor import colored
 from common.parser import parse_cfg
 from common.seed import set_seed
 from envs import make_env
-from tdmpc2 import TDMPC2
+
+from agents.tdmpc2.tdmpc2 import TDMPC2
+
 import pandas as pd
 torch.backends.cudnn.benchmark = True
 from pyquaternion import Quaternion

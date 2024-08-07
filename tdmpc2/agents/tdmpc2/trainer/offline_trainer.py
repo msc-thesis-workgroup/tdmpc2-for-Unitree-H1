@@ -9,7 +9,7 @@ import torch
 from tqdm import tqdm
 
 from common.buffer import Buffer
-from trainer.base import Trainer
+from .base import Trainer
 
 
 class OfflineTrainer(Trainer):

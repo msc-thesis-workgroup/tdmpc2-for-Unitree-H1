@@ -11,7 +11,7 @@ def missing_dependencies(task):
 	raise ValueError(f'Missing dependencies for task {task}; install dependencies to use this environment.')
 
 try:
-	from envs.humanoid_locomotion_wrapper import make_env as make_basic_locomotion_env
+	from .env_builder import make_env as make_humanoid_robot_env
 except:
 	make_locomotion_env = missing_dependencies
 
@@ -49,7 +49,7 @@ def make_env(cfg):
 	else:
 		env = None
 		try:
-			env = make_basic_locomotion_env(cfg)
+			env = make_humanoid_robot_env(cfg)
 		except ValueError:
 			raise ValueError(f'Failed to make environment "{cfg.task}": please verify that dependencies are installed and that the task exists.')
 		env = TensorWrapper(env)

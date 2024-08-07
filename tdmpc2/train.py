@@ -17,9 +17,10 @@ from common.parser import parse_cfg
 from common.seed import set_seed
 from common.buffer import Buffer
 from envs import make_env
-from tdmpc2 import TDMPC2
-from trainer.offline_trainer import OfflineTrainer
-from trainer.online_trainer import OnlineTrainer
+from agents.tdmpc2.tdmpc2 import TDMPC2
+
+from agents.tdmpc2.trainer.offline_trainer import OfflineTrainer
+from agents.tdmpc2.trainer.online_trainer import OnlineTrainer
 from common.logger import Logger
 
 torch.backends.cudnn.benchmark = True

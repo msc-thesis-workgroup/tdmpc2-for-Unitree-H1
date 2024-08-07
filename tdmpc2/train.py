@@ -53,8 +53,6 @@ def train(cfg: dict):
     print(colored("Work dir:", "yellow", attrs=["bold"]), cfg.work_dir)
     #print(colored(f"Checkpoint: {cfg.checkpoint}", "blue", attrs=["bold"]))
 
-    #print("[DEBUG: train.py] fill_buffer_steps:",cfg.fill_buffer_steps)
-
     # Select trainer
     trainer_cls = OfflineTrainer if cfg.multitask else OnlineTrainer
     print("Using trainer:", trainer_cls.__name__)

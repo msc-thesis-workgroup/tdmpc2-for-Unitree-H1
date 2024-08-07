@@ -27,7 +27,7 @@ class OnlineTrainer(Trainer):
 	def save_buffer(self):
 		"""Save the replay buffer."""
 		save_pickle_path = str(self.logger.experiment_dir) + "/buffer.pkl" # Consider using os.path.join(self.logger.experiment_dir, "buffer.pkl")
-		print("Saving buffer to", save_pickle_path)
+		print("... Saving buffer to", save_pickle_path)
 
 		self.buffer.save(save_pickle_path)
 		print("Buffer saved")
@@ -66,7 +66,6 @@ class OnlineTrainer(Trainer):
 			ep_rewards.append(ep_reward)
 			ep_successes.append(info["success"])
 			if self.cfg.save_video:
-				# self.logger.video.save(self._step)
 				self.logger.video.save(self._step, key='results/video')
 		return dict(
 			episode_reward=np.nanmean(ep_rewards),
@@ -115,7 +114,7 @@ class OnlineTrainer(Trainer):
 					self.logger.save_agent(self.agent, f"step-{self._step}")
 					
 					if self._step != self._starting_step:
-						print("Saving buffer at step", self._step)
+						print("... Saving buffer at step", self._step)
 						self.save_buffer()
 					save_next = False
 					print("Saved agent at step", self._step)
@@ -146,41 +145,28 @@ class OnlineTrainer(Trainer):
 					self.logger.log(results_metrics, "results")
 					self._ep_idx = self.buffer.add(torch.cat(self._tds))
 
-				#print("1. Resetting environment... Saving tensor dict")
 				obs = self.env.reset()[0]
 				self._tds = [self.to_td(obs)]
 
 			# Collect experience
 			if self._step > self.cfg.seed_steps or not(self.cfg.from_scratch):
-			#if (self._step >= self.cfg.seed_steps and self.cfg.from_scratch) or ((self._step >= self._starting_step+self.cfg.seed_steps) and not(self.cfg.from_scratch)):
-				
-				# if self._step % 5000 == 0:
-				# 	print("[DEBUG: online_trainer.py] acting as agent and not random act")
 				action = self.agent.act(obs, t0=len(self._tds) == 1)
-				#print("action:",action)
 			else:
-				
-				# if self._step % 500 == 0:
-				# 	print("[DEBUG: online_trainer.py] RANDOM ACT")
 				action = self.env.rand_act()
-				#print("random action:",action)
+				
 			obs, reward, done, truncated, info = self.env.step(action)
 			done = done or truncated
 			self._tds.append(self.to_td(obs, action, reward))
 
 			# Update agent # If the buffer is loaded from a file, it is not necessary adding elements to the buffer, without updating the agent.
-			#if (self._step >= self.cfg.seed_steps) and (self._step >= (self._starting_step+self.cfg.seed_steps+self.cfg.fill_buffer_steps)): # If from_scratch is True, _starting_step is 0.
-			#	if self._step == self.cfg.seed_steps or (self._step == (self._starting_step+self.cfg.seed_steps+self.cfg.fill_buffer_steps)):# and not self.cfg.from_scratch:
 			if ((self._step >= self.cfg.seed_steps) and (self._step >= (self._starting_step+self.cfg.seed_steps))) or (self._buffer_loaded): # If from_scratch is True, _starting_step is 0.
-				if self._step == self.cfg.seed_steps and self.cfg.from_scratch: #TODO(my-rice): Consider removing the "and self.cfg.from_scratch" part.
+				if self._step == self.cfg.seed_steps and self.cfg.from_scratch:
 					num_updates = self.cfg.seed_steps
 					print("Pretraining agent (on seed data) ...")
 				else:
 					num_updates = 1
 				for _ in range(num_updates):
 					_train_metrics = self.agent.update(self.buffer)
-				# if self._step % 1000 == 0:
-				# 	print("[DEBUG: online_trainer.py] ... updating agent ... ")
 				train_metrics.update(_train_metrics)
 
 			self._step += 1

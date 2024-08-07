@@ -1,10 +1,6 @@
 defaults:
     - override hydra/launcher: submitit_local
 
-# TODO(all): remove useless lines parameters from here
-
-fill_buffer_steps: 0 # TODO(my-rice): consider remove this line from here and the other parts of the code # you have to add the more 5*max_episode_length (5000) steps to this number
-
 # environment
 task: h1-walk-v0 #humanoid_h1-walk-v0
 obs: state

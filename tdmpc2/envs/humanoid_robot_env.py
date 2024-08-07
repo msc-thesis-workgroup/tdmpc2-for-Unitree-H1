@@ -1,4 +1,3 @@
-# This file is a modified version of the original file from the HumanoidBench repository
 import os
 
 import numpy as np
@@ -35,14 +34,11 @@ DEFAULT_ENV_CONFIG = {
     "max_episode_steps": 1000
 }
 
-
 ROBOTS = {"h1": H1} 
 
 TASKS = {
     "walk": WalkStyle1Task
 }
-
-
 
 
 class HumanoidRobotEnv(MujocoEnv, gym.utils.EzPickle,Environment):

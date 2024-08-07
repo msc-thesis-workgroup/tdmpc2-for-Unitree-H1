@@ -43,7 +43,9 @@ class H1(Robot):
         #                                     [-4.45  1.3 ]
         #                                     [-1.25  2.61]]
 
+    # Override the update_robot_state method from the Robot class.
     def update_robot_state(self, env: Environment):
+        """Updates the robot state with the environment data."""
         self._env = env # TODO: replace this so it only gets the necessary data from the environment.
     
     def get_qpos(self):
@@ -73,8 +75,8 @@ class H1(Robot):
     def head_height(self):
         """Returns the height of the torso."""
         # Get torso_link position as a body in the space and add "0 0 0.7" as an offset
-        data_temp = copy.deepcopy(self._env.named.data)
-
+        #data_temp = copy.deepcopy(self._env.named.data)
+        data_temp = self._env.named.data
         
         quat = data_temp.xquat["torso_link"]
         offset = np.array([0, 0, 0.7])

@@ -3,13 +3,13 @@
 This repository is a fork of the official implementation of TD-MPC2 by Nicklas Hansen, Hao Su, and Xiaolong Wang. The original repository can be found [here](https://github.com/nicklashansen/tdmpc2). 
 The repository is specifically designed for training and evaluating TD-MPC2 agents on a variety of continuous control tasks for the humanoid Unitree H1 robot. 
 
-----
+---
 
 ## Overview
 
 As reported in the official repo, TD-MPC**2** is a scalable, robust world model for continuous control tasks. It is also a model-based reinforcement learning algorithm that learns a world model from data collected by a model-free agent. The world model is then used to plan and execute actions in the environment.
 
-----
+---
 
 ## Getting started
 
@@ -19,12 +19,15 @@ Multi-task online and offline RL has not been tested.
 I provide a `pyproject.toml` with all the required libraries. 
 
 More instructions on how to install the required libraries will be provided in the future. Or you can refer to the official repo for more information.
+
 ----
 
 
 ## Example usage
 
 We provide examples on how to evaluate our provided TD-MPC**2** checkpoints, as well as how to train your own TD-MPC**2** agents, below.
+
+----
 
 ### Evaluation
 
@@ -62,12 +65,13 @@ WARNING!!! Notice in the same directory of the checkpoint file there should be:
 
 All these files are automatically saved by the training script. So, you have to be careful to not delete them and specify a valid path that contains all these files. Notice that the model (the *.pt file) is the only mandatory file to train the model from a checkpoint, but the training will be strongly unstable without the replay buffer data.
 
-----
+---
 
 ## License
 
 This project is licensed under the MIT License - see the `LICENSE` file for details. Note that the repository relies on third-party code, which is subject to their respective licenses.
 
+---
 
 ## References
 
@@ -76,6 +80,7 @@ This project is licensed under the MIT License - see the `LICENSE` file for deta
 - The Unitree Robotics H1 robot is a humanoid robot developed by Unitree Robotics. The robot model is taken from MuJoCo Menagerie, which is a collection of MuJoCo environments and models.
 
 - Some of the code was inspired by the HumanoidBench repository. However, the code is not a direct copy of the HumanoidBench repository, there are enough differences between the two repositories to consider them as completely different projects. These differences are necessary for the needs of the project.
+--- 
 
 ## Known issues
 

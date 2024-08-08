@@ -30,11 +30,11 @@ We provide examples on how to evaluate our provided TD-MPC**2** checkpoints, as 
 
 To evaluate the model, you need to specify the path to the model file you want to evaluate (checkpoint parameter) and the save_video argument. The save_video argument is used to save the video of the evaluation. The command to evaluate the model is the following:
 ```bash
-python evaluate.py checkpoint=checkpoint_path save_video=boolean
+python evaluate.py task=robot_name-task_name-reward_version checkpoint=checkpoint_path save_video=boolean
 ```
 An example of how to evaluate the model is the following:
 ```bash
-python evaluate.py checkpoint=/home/davide/tdmpc2/tdmpc2/logs/humanoid_h1-walk-v0/1/tdmpc/models/base_3-2024-04-30-22-38-59/step-775175.pt save_video=true
+python evaluate.py task=h1-walk-v1 checkpoint=/home/davide/tdmpc2/tdmpc2/logs/humanoid_h1-walk-v0/1/tdmpc/models/base_3-2024-04-30-22-38-59/step-775175.pt save_video=true
 ```
 
 ----
@@ -43,16 +43,16 @@ python evaluate.py checkpoint=/home/davide/tdmpc2/tdmpc2/logs/humanoid_h1-walk-v
 #### How to train the model from scratch
 To train the model from scratch, you need to specify the task you want to train the model on. The command to train the model from scratch is the following:
 ```bash
-python train.py task=humanoid_h1-walk-v0 experiment_name=experiment_name
+python train.py task=h1-walk-v1 task=humanoid_h1-walk-v0 experiment_name=experiment_name
 ```
 #### How to train the model from a checkpoint
 To train the model from a checkpoint, you need to specify the path to the checkpoint file and the experiment name. The experiment name is used to create a new directory in the outputs folder where the new experiment will be saved. The command to train the model from a checkpoint is the same as the one used to train the model from scratch, with the addition of the checkpoint and experiment_name arguments. The command template to train the model from a checkpoint is the following:
 ```bash
-python train.py task=humanoid_h1-walk-v0 checkpoint=checkpoint_path experiment_name=experiment_name
+python train.py task=robot_name-task_name-reward_version checkpoint=checkpoint_path experiment_name=experiment_name
 ```
 An example of how to train the model from a checkpoint is the following:
 ```bash
-python train.py task=humanoid_h1-walk-v0 checkpoint=/home/davide/tdmpc2/tdmpc2/logs/humanoid_h1-walk-v0/1/tdmpc/models/base/step-750465.pt experiment_name=testing
+python train.py task=h1-walk-v1 checkpoint=/home/davide/tdmpc2/tdmpc2/logs/humanoid_h1-walk-v0/1/tdmpc/models/base/step-750465.pt experiment_name=testing
 ```
 
 WARNING!!! Notice in the same directory of the checkpoint file there should be:

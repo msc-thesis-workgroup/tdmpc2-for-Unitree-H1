@@ -1,66 +1,27 @@
 
-from .task import Task
-from ..robots.robot import Robot
-from ..environment import Environment
-
 import numpy as np
+from .reward import Reward
 from dm_control.utils import rewards
-from gymnasium.spaces import Box
+from ..robots.robot import Robot
 
-_STAND_HEIGHT = 1.65
-_WALK_SPEED = 1
+class WalkV0(Reward):
 
-class WalkStyle1Task(Task):
-    def __init__(self):
+    def __init__(self, robot: Robot = None):
         super().__init__()
-        self._observation_space = None
-        self.dof = 0 # TODO: Is this necessary?
+        self._stand_height = 1.65
+        self._walk_speed = 1
 
-        self._move_speed = _WALK_SPEED
-    
+    def set_stand_height(self, stand_height):
+        self._stand_height = stand_height
 
-    def set_observation_space(self, robot: Robot) -> None:
-        self._observation_space = Box(
-            low=-np.inf, high=np.inf, shape=(robot.dof * 2 - 1,), dtype=np.float64
-        )
-
-    @property
-    def observation_space(self):
-        return self._observation_space
-
-    def get_obs(self, env: Environment) -> np.array:
-        position = env.data.qpos.flat.copy()
-        velocity = env.data.qvel.flat.copy()
-        state = np.concatenate((position, velocity))
-        return state
-
-    def unnormalize_action(self, action: np.array) -> np.array:
-        # TODO: Check if this is correct
-        return (
-            2
-            * (action - self._env.action_low)
-            / (self._env.action_high - self._env.action_low)
-            - 1
-        )
-    
-    def normalize_action(self, action: np.array) -> np.array:
-        # TODO: Check if this is correct
-        return (action + 1) / 2 * (
-            self._env.action_high - self._env.action_low
-        ) + self._env.action_low
-    
-    def reset_model(self,env: Environment) -> np.array:
-        return self.get_obs(env)
-    
-    def get_terminated(self, env: Environment) -> tuple[bool, dict]:
-        return env.data.qpos[2] < 0.2, {}
-
+    def set_walk_speed(self, walk_speed):
+        self._walk_speed = walk_speed
 
     def get_reward(self, robot: Robot, action: np.array) -> float:
         standing = rewards.tolerance(
             robot.head_height(),
-            bounds=(_STAND_HEIGHT, float("inf")),
-            margin=_STAND_HEIGHT / 4,
+            bounds=(self._stand_height, float("inf")),
+            margin=self._stand_height / 4,
         )
         upright = rewards.tolerance(
             robot.torso_upright(),

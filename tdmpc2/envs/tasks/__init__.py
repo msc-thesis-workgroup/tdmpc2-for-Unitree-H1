@@ -1,1 +1,1 @@
-from .walk_style1_task import WalkStyle1Task
+from .walk import Walk

@@ -15,8 +15,12 @@ from .environment import Environment
 
 from .robots import H1
 
+from .rewards import (
+    WalkV0,
+    WalkV1,
+)
 from .tasks import (
-    WalkStyle1Task,
+    Walk,
 )
 
 
@@ -37,9 +41,13 @@ DEFAULT_ENV_CONFIG = {
 ROBOTS = {"h1": H1} 
 
 TASKS = {
-    "walk": WalkStyle1Task
+    "walk": Walk
 }
 
+REWARDS = {
+    "walk-v0": WalkV0,
+    "walk-v1": WalkV1,
+}
 
 class HumanoidRobotEnv(MujocoEnv, gym.utils.EzPickle,Environment):
     metadata = {
@@ -50,7 +58,7 @@ class HumanoidRobotEnv(MujocoEnv, gym.utils.EzPickle,Environment):
     def __init__(
         self,
         robot=None,
-        #control=None,
+        version=None,
         task=None,
         render_mode="rgb_array",
         width=256,
@@ -59,24 +67,21 @@ class HumanoidRobotEnv(MujocoEnv, gym.utils.EzPickle,Environment):
         **kwargs,
     ):
         #assert robot and control and task, f"{robot} {control} {task}"
-        assert robot and task, f"{robot} {task}"
+        assert robot and task and version, f"{robot} {task} {version}"
         gym.utils.EzPickle.__init__(self, metadata=self.metadata)
         
         # Go back to the previous directory
-        asset_path = os.path.dirname(os.path.dirname(__file__))
+        asset_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        
+        asset_path = os.path.join(asset_path, "asset")
 
-        asset_path = os.path.join(asset_path, "assets")
+        model_path = os.path.join(asset_path,robot.upper())
+        model_path = os.path.join(model_path, f"scene.xml")
 
-        #model_path = f"envs/{robot}_{control}_{task}.xml"
-        #model_path = os.path.join(asset_path, model_path)
-        model_path = "/home/davide/tdmpc2/asset/unitree_h1/scene.xml" #TODO(my-rice) fix this. You need to change dynamically the path. It must not be hard coded.
         print("[DEBUG: basic_locomotion_env] model_path:", model_path)
 
 
-
-
-        self.robot = ROBOTS[robot]()
-    
+        self.robot = ROBOTS[robot]()    
         self.task = TASKS[task]()
         self.task.set_observation_space(self.robot)
 
@@ -100,15 +105,17 @@ class HumanoidRobotEnv(MujocoEnv, gym.utils.EzPickle,Environment):
             camera_name=DEFAULT_ENV_CONFIG["camera_name"],
         )
         print("[DEBUG basic_env_elements]: timestep:",self.model.opt.timestep)
+        # Setting up the action space
         self.action_high = self.action_space.high
         self.action_low = self.action_space.low
         self.action_space = Box(
             low=-1, high=1, shape=self.action_space.shape, dtype=np.float32
         )
 
-        #self.task = TASKS[task](self.robot, self, **kwargs)
-
         self.observation_space = self.task.observation_space
+
+        print("[DEBUG basic_locomotion_env] self.observation_space:", self.observation_space)
+        print("[DEBUG basic_locomotion_env] self.action_space:", self.action_space)
 
         # Keyframe
         self.keyframe = (
@@ -125,6 +132,9 @@ class HumanoidRobotEnv(MujocoEnv, gym.utils.EzPickle,Environment):
             model=index.struct_indexer(model, "mjmodel", axis_indexers),
             data=index.struct_indexer(data, "mjdata", axis_indexers),
         )
+
+        self.robot.update_robot_state(self)
+        self.task.set_reward(REWARDS[f"{task}-{version}"](robot=self.robot))
 
         assert self.robot.dof + self.task.dof == len(self.data.qpos), (
             self.robot.dof,
@@ -170,7 +180,7 @@ class HumanoidRobotEnv(MujocoEnv, gym.utils.EzPickle,Environment):
         
         self.do_simulation(action, self.frame_skip)
 
-        obs = self.task.get_obs(self)
+        obs = self.get_obs()
         self.robot.update_robot_state(self)
         reward, reward_info = self.task.get_reward(self.robot, action)
         terminated, terminated_info = self.task.get_terminated(self)
@@ -178,6 +188,8 @@ class HumanoidRobotEnv(MujocoEnv, gym.utils.EzPickle,Environment):
         info = {"per_timestep_reward": reward, **reward_info, **terminated_info}
         return obs, reward, terminated, False, info
 
+    def get_obs(self):
+        return self.task.get_obs(env=self)
 
     def mock_next_state(self, action):
         return self.task.mock_next_state(action)

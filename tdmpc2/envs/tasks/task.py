@@ -1,12 +1,13 @@
 from abc import ABC, abstractmethod
 import numpy as np
-
+from ..rewards import Reward
+from ..robots import Robot
 from ..environment import Environment
 
 class Task(ABC):
     kwargs = {}
     @abstractmethod
-    def get_reward(self, state: np.array, action: np.array) -> float:
+    def get_reward(self, robot: Robot, action: np.array) -> float:
         pass
     
     @abstractmethod
@@ -26,5 +27,9 @@ class Task(ABC):
         pass
 
     @abstractmethod
-    def get_terminated(self, state: np.array) -> bool:
+    def get_terminated(self, env: Environment) -> tuple[bool, dict]:
+        pass
+
+    @abstractmethod
+    def set_reward(self, reward: Reward):
         pass

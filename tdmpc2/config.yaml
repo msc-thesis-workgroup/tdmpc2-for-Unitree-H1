@@ -2,7 +2,7 @@ defaults:
     - override hydra/launcher: submitit_local
 
 # environment
-task: h1-walk-v0 #humanoid_h1-walk-v0
+task: h1-walk-v1 #humanoid_h1-walk-v0
 obs: state
 
 # evaluation

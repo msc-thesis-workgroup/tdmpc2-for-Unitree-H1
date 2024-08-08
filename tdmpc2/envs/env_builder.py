@@ -2,14 +2,13 @@
 import os
 import sys
 
-import numpy as np
 import gymnasium as gym
 
 DEFAULT_EPISODE_STEPS = 1000
 
 
 from gymnasium.envs import register
-from envs.humanoid_robot_env import ROBOTS, TASKS
+from envs.humanoid_robot_env import ROBOTS, TASKS, REWARDS
 
 
 def _test():
@@ -26,16 +25,21 @@ def register_envs(cfg):
             kwargs = task_obj.kwargs.copy()
             kwargs["robot"] = robot
             kwargs["task"] = task
-            if "max_episode_steps" in cfg:
-                max_episode_steps = cfg.max_episode_steps
-            else:
-                max_episode_steps = DEFAULT_EPISODE_STEPS
-            register(
-                id=f"{robot}-{task}-v0",
-                entry_point="envs.humanoid_robot_env:HumanoidRobotEnv",
-                max_episode_steps= max_episode_steps,
-                kwargs=kwargs,
-            )
+
+            for reward_name in REWARDS.keys():
+                if task in reward_name:
+                    version = reward_name.split("-")[1]
+                    kwargs["version"] = version
+                    if "max_episode_steps" in cfg:
+                        max_episode_steps = cfg.max_episode_steps
+                    else:
+                        max_episode_steps = DEFAULT_EPISODE_STEPS
+                    register(
+                        id=f"{robot}-{task}-{version}",
+                        entry_point="envs.humanoid_robot_env:HumanoidRobotEnv",
+                        max_episode_steps= max_episode_steps,
+                        kwargs=kwargs,
+                    )
 
 
 def make_env(cfg):
@@ -55,20 +59,20 @@ def make_env(cfg):
     register_envs(cfg)
 
     # Create the custom environment with the characteristics specified in the register function.
+
+    # TODO ASSERT THE cfg.task ASSUMPIONS NAME
+
     env = gym.make(cfg.task,)
-    #env = HumanoidLocomotionWrapper(env, cfg)
 
     # get the max_episode_steps from the cfg if it is available
     if "max_episode_steps" in cfg:
         print("[DEBUG humanoid_locomotion_wrapper.py]: setting max_episode_steps to", cfg.max_episode_steps)
-        #env.env.max_episode_steps = cfg.max_episode_steps
         env.max_episode_steps = cfg.max_episode_steps
     
     if "frame_skip" in cfg:
         print("[DEBUG humanoid_locomotion_wrapper.py]: setting frame_skip to", cfg.frame_skip)
-        #env.env.frame_skip = cfg.frame_skip
         env.frame_skip = cfg.frame_skip
 
-    env.max_episode_steps = env.get_wrapper_attr("_max_episode_steps") #TODO(my-rice): I want to try to use way less episodes. I want to focus on the potential of the reward function. A good reward function should be able to solve the task in a few episodes.
-    
+    env.max_episode_steps = env.get_wrapper_attr("_max_episode_steps") #TODO: check if this is correct
+
     return env

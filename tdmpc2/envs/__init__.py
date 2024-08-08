@@ -15,6 +15,8 @@ try:
 except:
 	make_locomotion_env = missing_dependencies
 
+from .env_builder import _test
+_test()
 
 warnings.filterwarnings('ignore', category=DeprecationWarning)
 

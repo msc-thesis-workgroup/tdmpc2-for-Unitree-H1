@@ -49,6 +49,8 @@ REWARDS = {
     "walk-v1": WalkV1,
 }
 
+DEFAULT_TIME_STEP = 0.002
+
 class HumanoidRobotEnv(MujocoEnv, gym.utils.EzPickle,Environment):
     metadata = {
         "render_modes": ["human", "rgb_array", "depth_array"],
@@ -60,6 +62,7 @@ class HumanoidRobotEnv(MujocoEnv, gym.utils.EzPickle,Environment):
         robot=None,
         version=None,
         task=None,
+        frame_skip = DEFAULT_ENV_CONFIG["frame_skip"],
         render_mode="rgb_array",
         width=256,
         height=256,
@@ -68,6 +71,7 @@ class HumanoidRobotEnv(MujocoEnv, gym.utils.EzPickle,Environment):
     ):
         #assert robot and control and task, f"{robot} {control} {task}"
         assert robot and task and version, f"{robot} {task} {version}"
+        self.metadata["render_fps"] = 1 / (DEFAULT_TIME_STEP*frame_skip)
         gym.utils.EzPickle.__init__(self, metadata=self.metadata)
         
         # Go back to the previous directory
@@ -93,10 +97,11 @@ class HumanoidRobotEnv(MujocoEnv, gym.utils.EzPickle,Environment):
 
         Environment.__init__(self)
 
+        print("[DEBUG basic_locomotion_env]: frame_skip:", frame_skip)
         MujocoEnv.__init__(
             self,
             model_path,
-            frame_skip=DEFAULT_ENV_CONFIG["frame_skip"],
+            frame_skip= frame_skip,#DEFAULT_ENV_CONFIG["frame_skip"],
             observation_space=self.task.observation_space,
             default_camera_config=DEFAULT_CAMERA_CONFIG,
             render_mode=render_mode,
@@ -105,6 +110,7 @@ class HumanoidRobotEnv(MujocoEnv, gym.utils.EzPickle,Environment):
             camera_name=DEFAULT_ENV_CONFIG["camera_name"],
         )
         print("[DEBUG basic_env_elements]: timestep:",self.model.opt.timestep)
+        print("[DEBUG basic_env_elements]: dt:",self.dt)
         # Setting up the action space
         self.action_high = self.action_space.high
         self.action_low = self.action_space.low
@@ -180,6 +186,7 @@ class HumanoidRobotEnv(MujocoEnv, gym.utils.EzPickle,Environment):
         
         self.do_simulation(action, self.frame_skip)
 
+        #print("[DEBUG basic_locomotion_env]: env.data.time:", self.data.time)
         obs = self.get_obs()
         self.robot.update_robot_state(self)
         reward, reward_info = self.task.get_reward(self.robot, action)

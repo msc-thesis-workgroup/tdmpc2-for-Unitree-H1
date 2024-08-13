@@ -61,18 +61,16 @@ def make_env(cfg):
     # Create the custom environment with the characteristics specified in the register function.
 
     # TODO ASSERT THE cfg.task ASSUMPIONS NAME
-
-    env = gym.make(cfg.task,)
+    if "frame_skip" in cfg:
+        env = gym.make(cfg.task, frame_skip=cfg.frame_skip)
+    else:
+        env = gym.make(cfg.task,)
 
     # get the max_episode_steps from the cfg if it is available
     if "max_episode_steps" in cfg:
         print("[DEBUG humanoid_locomotion_wrapper.py]: setting max_episode_steps to", cfg.max_episode_steps)
         env.max_episode_steps = cfg.max_episode_steps
     
-    if "frame_skip" in cfg:
-        print("[DEBUG humanoid_locomotion_wrapper.py]: setting frame_skip to", cfg.frame_skip)
-        env.frame_skip = cfg.frame_skip
-
     env.max_episode_steps = env.get_wrapper_attr("_max_episode_steps") #TODO: check if this is correct
 
     return env

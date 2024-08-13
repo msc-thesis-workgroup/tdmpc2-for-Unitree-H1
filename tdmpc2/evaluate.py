@@ -77,6 +77,9 @@ def evaluate(cfg: dict):
     env = make_env(cfg)
     print("env created. action_space,", env.action_space,"observation_space: ",env.observation_space,"  max_episode_steps: ", env.max_episode_steps)
 
+    print("env.model.opt.timestep", env.model.opt.timestep)
+    
+
     # Load agent
     agent = TDMPC2(cfg)
     assert os.path.exists(
@@ -135,7 +138,7 @@ def evaluate(cfg: dict):
                 df_observations.to_csv( os.path.join(video_dir, f"{task}-{i}.csv"), index=False)
 
                 imageio.mimsave(
-                    os.path.join(video_dir, f"{task}-{i}.mp4"), frames, fps=15
+                    os.path.join(video_dir, f"{task}-{i}.mp4"), frames, fps=1/env.unwrapped.dt
                 )
         ep_rewards = np.mean(ep_rewards)
         ep_successes = np.mean(ep_successes)

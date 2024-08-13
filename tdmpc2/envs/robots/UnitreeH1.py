@@ -126,7 +126,16 @@ class H1(Robot):
 
     def center_of_mass_velocity(self):
         """Returns the velocity of the center-of-mass."""
+        #print("[DEBUG: robots.py]: center_of_mass_velocity:",self._env.named.data.sensordata["pelvis_subtreelinvel"].copy())
         return self._env.named.data.sensordata["pelvis_subtreelinvel"].copy() # Problem here
+
+    def robot_velocity(self):
+        """Returns the velocity of the robot in the global frame."""
+        return self._env.named.data.qvel[0:3].copy()
+    
+    def robot_position(self):
+        """Returns the position of the robot in the global frame."""
+        return self._env.named.data.qpos[0:3].copy()
 
     def body_velocity(self):
         """Returns the velocity of the torso in local frame."""

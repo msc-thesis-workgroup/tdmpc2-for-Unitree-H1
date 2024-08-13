@@ -27,9 +27,9 @@ class WalkV1(Reward):
     def __init__(self,robot: Robot):
         super().__init__()
         self._stand_height = _STAND_HEIGHT
-        self._move_speed = 1.44 # 5.2 km/h
-        self._move_speed_lower_bound = 1.11 # 4 km/h 
-        self._move_speed_upper_bound = 1.78 # 6.4 km/h
+        self._move_speed = 1.44 # 5.2 km/h # è già troppo alto. è una camminata abbastanza veloce.
+        self._move_speed_lower_bound = 1.11 # 4 km/h # VELOCITà IDEALE (MAX 4 KM/H). Il minimo deve essere 3 km/h.
+        self._move_speed_upper_bound = 1.78 # 6.4 km/h #TROPPO ALTO. è UNA CAMMINATA VELOCE.
 
         upper_limits = robot.get_upper_limits()
         lower_limits = robot.get_lower_limits()
@@ -105,12 +105,18 @@ class WalkV1(Reward):
 
 
         #print("[DEBUG basic_locomotion_tasks]: robot.center_of_mass_velocity():", robot.center_of_mass_velocity())
+        
         com_velocity_x = robot.center_of_mass_velocity()[0] # I take only the x component of the velocity.
 
-        com_position_y = robot.center_of_mass_position()[1] # I take only the y component of the position.
+        #com_position_y = robot.center_of_mass_position()[1] # I take only the y component of the position.
 
+
+        velocity_x = robot.robot_velocity()[0] # I take only the x component of the velocity.
+        position_y = robot.robot_position()[1] # I take only the y component of the position.
+        print("[DEBUG basic_locomotion_tasks]: velocity_x:", velocity_x )#, "position_y:", position_y)
+        print("[DEBUG basic_locomotion_tasks]: com_velocity_x:", com_velocity_x)
         move = rewards.tolerance(
-            com_velocity_x,
+            velocity_x, # com_velocity_x
             bounds=(self._move_speed_lower_bound, self._move_speed_upper_bound),
             margin=self._move_speed/3,
             value_at_margin=0.1,
@@ -119,7 +125,7 @@ class WalkV1(Reward):
         #print("[DEBUG basic_locomotion_tasks]: robot.center_of_mass_velocity():", com_position_y)
         
         centered_reward = rewards.tolerance(
-            com_position_y,
+            position_y, # com_position_y
             bounds=(-0.3, 0.3),
             margin=0.2,
             value_at_margin=0.1,

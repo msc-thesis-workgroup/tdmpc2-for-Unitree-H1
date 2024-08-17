@@ -18,6 +18,7 @@ from .robots import H1
 from .rewards import (
     WalkV0,
     WalkV1,
+    WalkV2,
 )
 from .tasks import (
     Walk,
@@ -47,6 +48,7 @@ TASKS = {
 REWARDS = {
     "walk-v0": WalkV0,
     "walk-v1": WalkV1,
+    "walk-v2": WalkV2,
 }
 
 DEFAULT_TIME_STEP = 0.002
@@ -174,6 +176,31 @@ class HumanoidRobotEnv(MujocoEnv, gym.utils.EzPickle,Environment):
 
         return joint_torques
 
+
+    # def get_joint_torques_by_inverse_dynamics(self, desired_joint_position):
+
+    #     #print("[DEBUG basic_locomotion_env]: desired_joint_position:", desired_joint_position)
+    #     old_qpos = self.data.qpos.copy()
+    #     old_qvel = self.data.qvel.copy()
+    #     #print("[DEBUG basic_locomotion_env]: qpos:", qpos)
+    #     ideal_pose = np.concatenate((old_qpos[0:3],[1,0,0,0]))
+    #     ideal_pose[0] = old_qpos[0]+1*0.002 # I want to move the robot 2mm in the x direction.
+
+    #     # Set the desired joint position
+    #     self.data.qpos = np.concatenate((ideal_pose,desired_joint_position))
+    #     # compute the gradient to get qvel
+    #     self.data.qvel = np.concatenate(((self.data.qpos[0:3] - old_qpos[0:3]) / self.dt,[0,0,0],(self.data.qpos[7:26] - old_qpos[7:26]) / self.dt))
+    #     # compute the gradient to get qacc
+    #     self.data.qacc = (self.data.qvel - old_qvel) / self.dt
+    #     # Compute the inverse dynamics
+    #     mujoco.mj_inverse(self.model, self.data)
+
+    #     # Get the joint torques
+    #     joint_torques = self.data.qfrc_inverse[6:26] # 
+    #     #print("[DEBUG basic_locomotion_env]: self.data.qfrc_inverse:", self.data.qfrc_inverse, "len(self.data.qfrc_inverse):", len(self.data.qfrc_inverse))
+    #     #print("[DEBUG basic_locomotion_env]: joint_torques:", joint_torques)
+    #     return joint_torques
+
     def step(self, action):
         
         #TODO refactor this. I don't like the fact that these steps are made here. I would like to have them in the task class. Environment should only be responsible for the simulation.
@@ -183,7 +210,7 @@ class HumanoidRobotEnv(MujocoEnv, gym.utils.EzPickle,Environment):
         desired_joint_position = (action + 1) / 2 * (action_high - action_low) + action_low
         
         action = self.get_joint_torques(desired_joint_position)
-        
+        #action = self.get_joint_torques_by_inverse_dynamics(desired_joint_position)
         self.do_simulation(action, self.frame_skip)
 
         #print("[DEBUG basic_locomotion_env]: env.data.time:", self.data.time)
@@ -199,6 +226,7 @@ class HumanoidRobotEnv(MujocoEnv, gym.utils.EzPickle,Environment):
         return self.task.get_obs(env=self)
 
     def mock_next_state(self, action):
+        # TODO delete this function
         return self.task.mock_next_state(action)
 
     def reset_model(self):

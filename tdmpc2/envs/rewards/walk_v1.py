@@ -27,9 +27,9 @@ class WalkV1(Reward):
     def __init__(self,robot: Robot):
         super().__init__()
         self._stand_height = _STAND_HEIGHT
-        self._move_speed = 1.44 # 5.2 km/h # è già troppo alto. è una camminata abbastanza veloce.
-        self._move_speed_lower_bound = 1.11 # 4 km/h # VELOCITà IDEALE (MAX 4 KM/H). Il minimo deve essere 3 km/h.
-        self._move_speed_upper_bound = 1.78 # 6.4 km/h #TROPPO ALTO. è UNA CAMMINATA VELOCE.
+        self._move_speed = 1.44 # 5.2 km/h # NOTE è già troppo alto. è una camminata abbastanza veloce.
+        self._move_speed_lower_bound = 1.11 # 4 km/h # NOTE VELOCITà IDEALE (MAX 4 KM/H). Il minimo deve essere 3 km/h.
+        self._move_speed_upper_bound = 1.78 # 6.4 km/h # NOTE TROPPO ALTO. è UNA CAMMINATA VELOCE.
 
         upper_limits = robot.get_upper_limits()
         lower_limits = robot.get_lower_limits()
@@ -84,7 +84,7 @@ class WalkV1(Reward):
         actuator_forces = actuator_forces/ctrl_ranges[:, 1] # I divide by the maximum value of the control range.
 
 
-        control_reward = 1 - np.mean(actuator_forces**2) # I want to penalize the control signal. The reward is 1 minus the mean of the normalized control signal.
+        control_reward = 1 - np.mean(actuator_forces**2) # NOTE Computing the square DOESN'T MAKE SENSE. They are values between 0 and 1. I WANT TO penalize high values but in this way I am not doing it.
         small_control = control_reward
         #small_control = (3 + control_reward) / 4 # I want to give more importance to the other rewards than to the control_reward. It is obvious that the control signal cannot be 0.
 
@@ -106,17 +106,13 @@ class WalkV1(Reward):
 
         #print("[DEBUG basic_locomotion_tasks]: robot.center_of_mass_velocity():", robot.center_of_mass_velocity())
         
-        com_velocity_x = robot.center_of_mass_velocity()[0] # I take only the x component of the velocity.
+        com_velocity_x = robot.center_of_mass_velocity()[0] # I take only the x component of the velocity. NOTE: I should take the velocity from the observation not from the pelvis sensor. They are slightly different.
 
-        #com_position_y = robot.center_of_mass_position()[1] # I take only the y component of the position.
+        com_position_y = robot.center_of_mass_position()[1] # I take only the y component of the position. NOTE: I should take the position from the observation not from the sensor. They are slightly different.
 
 
-        velocity_x = robot.robot_velocity()[0] # I take only the x component of the velocity.
-        position_y = robot.robot_position()[1] # I take only the y component of the position.
-        print("[DEBUG basic_locomotion_tasks]: velocity_x:", velocity_x )#, "position_y:", position_y)
-        print("[DEBUG basic_locomotion_tasks]: com_velocity_x:", com_velocity_x)
         move = rewards.tolerance(
-            velocity_x, # com_velocity_x
+            com_velocity_x,
             bounds=(self._move_speed_lower_bound, self._move_speed_upper_bound),
             margin=self._move_speed/3,
             value_at_margin=0.1,
@@ -125,7 +121,7 @@ class WalkV1(Reward):
         #print("[DEBUG basic_locomotion_tasks]: robot.center_of_mass_velocity():", com_position_y)
         
         centered_reward = rewards.tolerance(
-            position_y, # com_position_y
+            com_position_y,
             bounds=(-0.3, 0.3),
             margin=0.2,
             value_at_margin=0.1,
@@ -151,7 +147,7 @@ class WalkV1(Reward):
         #move = (5 * move + 1) / 6
         
 
-        reward = stand_reward*(small_control + 3*move + reward_upper_body + centered_reward + stay_inline_reward)/3
+        reward = stand_reward*(small_control + 3*move + reward_upper_body + centered_reward + stay_inline_reward)/7 # Trained with a bug. The denominator was "/3" instead of "/7". Now, it is fixed.
 
         return reward, {
             "stand_reward": stand_reward,

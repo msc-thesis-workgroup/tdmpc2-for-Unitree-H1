@@ -8,3 +8,7 @@ class Reward(ABC):
     @abstractmethod
     def get_reward(self, robot: Robot, action: np.array) -> float:
         pass
+
+    @abstractmethod
+    def reset(self) -> None:
+        pass

@@ -58,6 +58,8 @@ class WalkV1(Reward):
         
         self.ideal_orientation = Quaternion(np.array([1, 0, 0, 0]))
 
+    def reset(self) -> None:
+        pass
 
     def set_stand_height(self, stand_height):
         self._stand_height = stand_height

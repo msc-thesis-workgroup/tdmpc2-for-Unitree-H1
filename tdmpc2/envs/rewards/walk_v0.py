@@ -14,6 +14,9 @@ class WalkV0(Reward):
     def set_stand_height(self, stand_height):
         self._stand_height = stand_height
 
+    def reset(self) -> None:
+        pass
+
     def set_walk_speed(self, walk_speed):
         self._walk_speed = walk_speed
 

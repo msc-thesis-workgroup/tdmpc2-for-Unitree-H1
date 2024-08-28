@@ -4,6 +4,7 @@ import numpy as np
 from pyquaternion import Quaternion
 import copy
 from ..environment import Environment
+import mujoco
 
 
 _DOF = 26
@@ -21,6 +22,8 @@ class H1(Robot):
         self.upper_joint_limits = np.array([0.43, 0.43, 2.53, 2.05, 0.52, 0.43, 0.43, 2.53, 2.05, 0.52, 2.35, 2.87, 3.11, 4.45, 2.61, 2.87, 0.34, 1.3, 2.61])
         self.lower_joint_limits = np.array([-0.43, -0.43, -3.14, -0.26, -0.87, -0.43, -0.43, -3.14, -0.26, -0.87, -2.35, -2.87, -0.34, -1.3,  -1.25, -2.87, -3.11, -4.45, -1.25])
 
+        self.legs_joints = ["left_hip_yaw", "left_hip_roll", "left_hip_pitch", "left_knee", "left_ankle", "right_hip_yaw", "right_hip_roll", "right_hip_pitch", "right_knee", "right_ankle"]
+        self.geom_to_body_name = None
 
         # self._env.model.jnt_range:          [[ 0.    0.  ]
         #                                     [-0.43  0.43]
@@ -48,9 +51,48 @@ class H1(Robot):
         """Updates the robot state with the environment data."""
         self._env = env # TODO: replace this so it only gets the necessary data from the environment.
     
+    def get_feet_contacts(self):
+        """Returns the contact forces of the feet."""
+        model = self._env.model
+        data = self._env.data
+        # Create a dictionary with geom_id as key and body_name as value
+        
+        if self.geom_to_body_name is None:
+            self.geom_to_body_name = {}
+            for geom_id in range(model.ngeom):
+                body_name = self._get_body_name_from_geom_id(model, geom_id)
+                self.geom_to_body_name[geom_id] = body_name
+
+            # Print the dictionary
+            # for geom_id, body_name in self.geom_to_body_name.items():
+            #     print(f'Geom ID: {geom_id}, Body Name: {body_name}')
+
+            self.body_name_to_geom_ids = {}
+            for geom_id, body_name in self.geom_to_body_name.items():
+                if body_name not in self.body_name_to_geom_ids:
+                    self.body_name_to_geom_ids[body_name] = []
+                self.body_name_to_geom_ids[body_name].append(geom_id)
+
+            # print("\nBody Name to Geom IDs Dictionary:")
+            # for body_name, geom_ids in self.body_name_to_geom_ids.items():
+            #     print(f'Body Name: {body_name}, Geom IDs: {geom_ids}')
+
+        left_ankle_link_geom_ids = self.body_name_to_geom_ids['left_ankle_link']
+        right_ankle_link_geom_ids = self.body_name_to_geom_ids['right_ankle_link']
+        #print("[DEBUG: robots.py]: left_ankle_link_geom_ids:",left_ankle_link_geom_ids,"right_ankle_link_geom_ids:",right_ankle_link_geom_ids)
+        left_foot_contact = self._get_norm_contacts(model = model,data=data, geom_ids=left_ankle_link_geom_ids)
+        right_foot_contact = self._get_norm_contacts(model = model,data=data, geom_ids=right_ankle_link_geom_ids)
+        #print("[DEBUG: robots.py]: left_foot_contact:",left_foot_contact,"right_foot_contact:",right_foot_contact)
+        return left_foot_contact, right_foot_contact
+    
     def get_qpos(self):
         """Returns the joint positions."""
         return self._env.data.qpos.copy()
+
+    def get_qvel(self):
+        """Returns the joint velocities."""
+        return self._env.data.qvel.copy()
+    
 
     def get_upper_limits(self):
         """Returns the upper limits of the joints. These are the maximum angular positions that the joints can reach."""
@@ -78,7 +120,7 @@ class H1(Robot):
         #data_temp = copy.deepcopy(self._env.named.data)
         data_temp = self._env.named.data
         
-        quat = data_temp.xquat["torso_link"]
+        quat = data_temp.xquat["torso_link"].copy()
         offset = np.array([0, 0, 0.7])
         offset = Quaternion(quat).rotate(offset)
         head_pos = data_temp.xpos["torso_link"] + offset #np.array([0, 0, 0.7])
@@ -93,7 +135,7 @@ class H1(Robot):
         #data_temp = copy.deepcopy(self._env.named.data)
 
 
-        quat = self._env.named.data.xquat["left_ankle_link"]
+        quat = self._env.named.data.xquat["left_ankle_link"].copy()
         offset = np.array([0, 0, -0.05])
         offset = Quaternion(quat).rotate(offset)
         
@@ -107,7 +149,7 @@ class H1(Robot):
     def right_foot_height(self):
         """Returns the height of the right foot."""
 
-        quat = self._env.named.data.xquat["right_ankle_link"]
+        quat = self._env.named.data.xquat["right_ankle_link"].copy()
         offset = np.array([0, 0, -0.05])
         offset = Quaternion(quat).rotate(offset)
 
@@ -170,3 +212,72 @@ class H1(Robot):
     def actuator_forces(self):
         """Returns a copy of the forces applied by the actuators."""
         return self._env.data.actuator_force.copy()
+    
+
+    def normalized_actuator_forces_legs_joint(self):
+        """Returns the normalized forces applied by the actuators in the legs joint."""
+        actuator_forces = list()
+        ctrl_ranges = list()
+        for name in self.legs_joints:
+            actuator_forces.append(self._env.named.data.actuator_force[name])
+            ctrl_ranges.append(self._env.named.model.actuator_ctrlrange[name])
+        
+            #print("[DEBUG basic_locomotion_tasks]: name:", name, "actuator_force:", actuator_forces[-1],"ctrl_range:", ctrl_ranges[-1])
+        
+        
+        actuator_forces = np.abs(np.array(actuator_forces)) # The ctrl range is symmetric, so I can take the absolute value.
+        ctrl_ranges = np.array(ctrl_ranges)
+        actuator_forces = actuator_forces/ctrl_ranges[:, 1] # I divide by the maximum value of the control range to normalize the values.
+        return actuator_forces
+    
+    def _get_body_name_from_geom_id(self,model, geom_id):
+        body_id = model.geom_bodyid[geom_id]
+        name_start = model.name_bodyadr[body_id]
+        name_end = model.names.find(b'\0', name_start)
+        return model.names[name_start:name_end].decode('utf-8')
+    
+    def _get_norm_contacts(self, model,data, geom_ids):
+        value = 0
+        for i in range(data.ncon): # number of detected contacts
+            # Note that the contact array has more than `ncon` entries, so be careful to only read the valid entries.
+            contact = data.contact[i]
+            if contact.geom2 in geom_ids: 
+            
+                # print('contact', i)
+                # print('dist', contact.dist)
+                # print("geom", contact.geom) # array that contains the geom ids of the two bodies in contact (geom1, geom2)
+                # print('geom1', contact.geom1) # world
+                # print('geom2', contact.geom2) # geom del corpo in contatto
+                # geom1 = contact.geom1
+                # geom2 = contact.geom2
+                # print("contact between bodies:", self.geom_to_body_name[geom1], "and ", self.geom_to_body_name[geom2])
+                
+                # Use internal functions to read out mj_contactForce
+                c_array = np.zeros(6, dtype=np.float64)
+                mujoco.mj_contactForce(model, data, i, c_array) # Extract 6D force:torque given contact id, in the contact frame.
+                # A 6D vector specifying the collision forces/torques[3D force + 3D torque]
+                
+                #print('mj_contactForce c_array:', c_array)
+                #print('norm real', np.sqrt(np.sum(np.square(c_array))))
+
+                value += np.sqrt(np.sum(np.square(c_array)))
+        return value
+               
+
+    def get_body_pos(self,body_name):
+
+        if body_name == "left_foot":
+            body_name = "left_ankle_link"
+        elif body_name == "right_foot":
+            body_name = "right_ankle_link"
+        elif body_name == "left_knee":
+            body_name = "left_knee_link"
+        elif body_name == "right_knee":
+            body_name = "right_knee_link"
+        
+        #print("[DEBUG: robots.py]: body_name:",body_name)
+        return self._env.named.data.xpos[body_name].copy()
+    def get_subtree_linvel(self,body_name):
+        
+        return self._env.named.data.subtree_linvel[body_name].copy()
+        

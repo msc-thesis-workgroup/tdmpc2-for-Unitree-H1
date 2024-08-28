@@ -60,15 +60,20 @@ class WalkV3(Reward):
         self.dt = 0.002 #TODO
         self.dof_pos = robot.get_qpos()
 
-        self.feet_air_time = np.zeros(2)
+        self.feet_air_time = np.zeros((2,1))
 
-        lin_vel_x = [-0.3, 0.6]  # min max [m/s]
-        lin_vel_y = [-0.3, 0.3]   # min max [m/s]
-        ang_vel_yaw = [-0.3, 0.3]    # min max [rad/s]
-        heading = [-3.14, 3.14]
+        class command_ranges:
+            lin_vel_x = [-0.3, 0.6]  # min max [m/s]
+            lin_vel_y = [-0.3, 0.3]   # min max [m/s]
+            ang_vel_yaw = [-0.3, 0.3]    # min max [rad/s]
+            heading = [-3.14, 3.14]
         
-        self.commands = np.array([lin_vel_x, lin_vel_y, ang_vel_yaw, heading])
+        self.commands = np.array([1,0,0,0]) # np.array([lin_vel_x, lin_vel_y, ang_vel_yaw, heading])
 
+        self.episode_length_buf = 0
+
+
+        # Initialize the reward state and reset
         self.dof_vel = np.zeros(19)
         self.last_dof_vel = np.zeros_like(self.dof_pos)
 
@@ -76,16 +81,25 @@ class WalkV3(Reward):
         self.last_last_actions = np.zeros(19)
 
         
+        self.feet_height = np.zeros((2,1))
+        self.last_feet_z = 0.05
 
-    def get_reward(self, robot: Robot, action: np.ndarray|list[np.ndarray]) -> float:
+        self.last_root_vel = np.zeros(6)
+
+
+    def get_reward(self, robot: Robot, action: np.ndarray|list[np.ndarray]) -> tuple[float, dict]:
+
+        if isinstance(action, list):
+            action = action[0]
+
         self.robot = robot
-        self.actions = action
-        self.compute_ref_state()
+        self.actions = action # NOTE I passed the action as neural network output and not as torques.
         self.qpos = robot.get_qpos()
+        self.qvel = robot.get_qvel()
 
         self.dof_pos = self.qpos[7:26] # TODO Separate the joint positions from the root state. In addition the dof_pos here is only the legs.
         self.dof_vel = robot.get_qvel()[6:25] 
-        self.root_states = self.qpos[0:7]
+        self.root_states = np.concatenate([self.qpos[0:7], self.qvel[0:6]]) # 0:7 is the root state, 7:25 is the joint states
 
         self.base_quat = self.qpos[3:7] # self.base_quat[:] = self.root_states[:, 3:7]
         quat = Quaternion(self.base_quat)
@@ -95,48 +109,87 @@ class WalkV3(Reward):
         self.base_ang_vel = quat.inverse.rotate(self.qpos[29:32]) # 29:32 is the angular velocity of the base
         
         left_contact, right_contact = self.robot.get_feet_contacts()
-        self.contact_forces = np.stack([left_contact, right_contact], axis=1)
+        #print(left_contact, right_contact)
+        self.contact_forces = np.stack([np.array([left_contact]), np.array([right_contact])], axis=0)
 
-        self.torques = self.robot.actuator_forces()
+        #print("contact_forces: ",self.contact_forces)
+        self.episode_length_buf += 1
+
+        self.default_joint_angles = { # = target angles [rad] when action = 0.0
+           'left_hip_yaw_joint' : 0. ,   
+           'left_hip_roll_joint' : 0,               
+           'left_hip_pitch_joint' : -0.4,         
+           'left_knee_joint' : 0.8,       
+           'left_ankle_joint' : -0.4,     
+           'right_hip_yaw_joint' : 0., 
+           'right_hip_roll_joint' : 0, 
+           'right_hip_pitch_joint' : -0.4,                                       
+           'right_knee_joint' : 0.8,                                             
+           'right_ankle_joint' : -0.4                                     
+        }
+
+        # create a list of self.default_joint_angles values
+        self.default_joint_pd_target_values = np.array(list(self.default_joint_angles.values()))
+
+        self.torques = self.robot.actuator_forces() # actuators forces are 19
         ### 
-
+        self.compute_ref_state()
         reward = self.compute_reward()
 
+
+        ### Update the reward state
         self.last_last_actions = self.last_actions
-        self.last_actions = self.action
+        self.last_actions = self.actions
         self.last_dof_vel = self.dof_vel
+        self.last_root_vel = self.root_states[7:13]
 
-
-        return reward
+        #print("Reward: ", reward)
+        return reward.item(),{}
     
+
+    def reset(self):
+        #print("Resetting the reward state")
+        self.episode_length_buf = 0
+        self.feet_air_time = np.zeros((2,1))
+        self.feet_height = np.zeros((2,1))
+        self.last_feet_z = 0.05 # Same thing as np.array([0.05], [0.05])
+        self.last_contacts = np.zeros((2,1))
+        self.last_root_vel = np.zeros(6)
+        self.last_actions = np.zeros(19)
+        self.last_last_actions = np.zeros(19)
+        self.last_dof_vel = np.zeros(19)
+
     def compute_reward(self):
         reward = 0
         reward += self.parameters.scales.joint_pos * self._reward_joint_pos()
+        reward += self.parameters.scales.feet_clearance * self._reward_feet_clearance()
+        reward += self.parameters.scales.feet_contact_number * self._reward_feet_contact_number()
+        reward += self.parameters.scales.feet_air_time * self._reward_feet_air_time()
+        reward += self.parameters.scales.foot_slip * self._reward_foot_slip()
         reward += self.parameters.scales.feet_distance * self._reward_feet_distance()
         reward += self.parameters.scales.knee_distance * self._reward_knee_distance()
-        reward += self.parameters.scales.foot_slip * self._reward_foot_slip()
-        reward += self.parameters.scales.feet_air_time * self._reward_feet_air_time()
-        reward += self.parameters.scales.feet_contact_number * self._reward_feet_contact_number()
         reward += self.parameters.scales.feet_contact_forces * self._reward_feet_contact_forces()
-        reward += self.parameters.scales.default_joint_pos * self._reward_default_joint_pos()
-        reward += self.parameters.scales.base_height * self._reward_base_height()
-        reward += self.parameters.scales.base_acc * self._reward_base_acc()
-        reward += self.parameters.scales.vel_mismatch_exp * self._reward_vel_mismatch_exp()
         reward += self.parameters.scales.tracking_lin_vel * self._reward_tracking_lin_vel()
         reward += self.parameters.scales.tracking_ang_vel * self._reward_tracking_ang_vel()
+        reward += self.parameters.scales.vel_mismatch_exp * self._reward_vel_mismatch_exp()
         reward += self.parameters.scales.low_speed * self._reward_low_speed()
         reward += self.parameters.scales.track_vel_hard * self._reward_track_vel_hard()
+        reward += self.parameters.scales.default_joint_pos * self._reward_default_joint_pos()
+        reward += self.parameters.scales.orientation * self._reward_orientation()
+        reward += self.parameters.scales.base_height * self._reward_base_height()
+        reward += self.parameters.scales.base_acc * self._reward_base_acc()
         reward += self.parameters.scales.action_smoothness * self._reward_action_smoothness()
         reward += self.parameters.scales.torques * self._reward_torques()
         reward += self.parameters.scales.dof_vel * self._reward_dof_vel()
-        # reward += self.parameters.scales.collision * self._reward_collision()
         reward += self.parameters.scales.dof_acc * self._reward_dof_acc()
+        # reward += self.parameters.scales.collision * self._reward_collision()
+        
         return reward
 
     def  _get_phase(self):
         cycle_time = self.parameters.cycle_time
         # self.episode_length_buf are the number of iterations in the episode. This * dt gives the time in seconds.
-        phase = self.episode_length_buf * self.dt / cycle_time # TODO Fill episode_length_buf
+        phase = self.episode_length_buf * self.dt / cycle_time
         return phase
 
     def _get_gait_phase(self):
@@ -157,7 +210,8 @@ class WalkV3(Reward):
     
     def compute_ref_state(self):
         phase = self._get_phase()
-        sin_pos = np.sin(2 * np.pi * phase)
+        sin_pos = np.array([np.sin(2 * np.pi * phase)])
+        #print("sin_pos",sin_pos)
         sin_pos_l = sin_pos.copy()
         sin_pos_r = sin_pos.copy()
         self.ref_dof_pos = np.zeros_like(self.dof_pos)
@@ -166,17 +220,24 @@ class WalkV3(Reward):
         # left foot stance phase set to default joint pos
         sin_pos_l[sin_pos_l > 0] = 0
         sin_pos_l[np.abs(sin_pos_l) < 0.1] = 0
-        # TODO robot.get_home_joint_pos('left_hip_pitch_joint') etc ...
-        # TODO Refactor this. ref_dof_pos will become the joint reference position. In particular for legs. 
-        self.ref_dof_pos[:, 2] =  sin_pos_l * scale_1 + self.cfg.init_state.default_joint_angles['left_hip_pitch_joint']
-        self.ref_dof_pos[:, 3] =  sin_pos_l * scale_2 + self.cfg.init_state.default_joint_angles['left_knee_joint']
-        self.ref_dof_pos[:, 4] =  sin_pos_l * scale_1 + self.cfg.init_state.default_joint_angles['left_ankle_joint']
+        self.ref_dof_pos[2] =  sin_pos_l * scale_1 + self.default_joint_angles['left_hip_pitch_joint']
+        self.ref_dof_pos[3] =  sin_pos_l * scale_2 + self.default_joint_angles['left_knee_joint']
+        self.ref_dof_pos[4] =  sin_pos_l * scale_1 + self.default_joint_angles['left_ankle_joint']
         # right foot stance phase set to default joint pos
         sin_pos_r[sin_pos_r < 0] = 0
         sin_pos_r[np.abs(sin_pos_r) < 0.1] = 0
-        self.ref_dof_pos[:, 7] = sin_pos_r * scale_1 - self.cfg.init_state.default_joint_angles['right_hip_pitch_joint']
-        self.ref_dof_pos[:, 8] = sin_pos_r * scale_2 - self.cfg.init_state.default_joint_angles['right_knee_joint']
-        self.ref_dof_pos[:, 9] = sin_pos_r * scale_1 - self.cfg.init_state.default_joint_angles['right_ankle_joint']
+        self.ref_dof_pos[7] = sin_pos_r * scale_1 - self.default_joint_angles['right_hip_pitch_joint']
+        self.ref_dof_pos[8] = sin_pos_r * scale_2 - self.default_joint_angles['right_knee_joint']
+        self.ref_dof_pos[9] = sin_pos_r * scale_1 - self.default_joint_angles['right_ankle_joint']
+
+        # Other joints reference should be zero
+        # 0 0 -0.4 0.8 -0.4
+        # 0 0 -0.4 0.8 -0.4
+        # 0
+        # 0 0 0 0
+        # 0 0 0 0
+
+
         # # Double support phase
         # self.ref_dof_pos[torch.abs(sin_pos) < 0.1] = 0
 
@@ -186,18 +247,23 @@ class WalkV3(Reward):
         """
         Calculates the reward based on the difference between the current joint positions and the target joint positions.
         """
-        joint_pos = self.robot_position()[7:26] # TODO Check this
+        joint_pos = self.qpos[7:26] # Here I don't need to get only the first 10 elements, that are the joint positions of the robot legs
         pos_target = self.ref_dof_pos.copy()
         diff = joint_pos - pos_target
-        r = np.exp(-2 * np.linalg.norm(diff, axis=1)) - 0.2 * np.clip(np.linalg.norm(diff, axis=1),0, 0.5)
+        r = np.exp(-2 * np.linalg.norm(diff)) - 0.2 * np.clip(np.linalg.norm(diff),0, 0.5)
         return r
 
     def _reward_feet_distance(self):
         """
         Calculates the reward based on the distance between the feet. Penalize feet get close to each other or too far away.
         """
-        foot_pos = self.rigid_state[:, self.feet_indices, :2] # TODO
-        foot_dist = np.linalg.norm(foot_pos[:, 0, :] - foot_pos[:, 1, :], axis=1)
+        left_foot_pos = self.robot.get_body_pos('left_foot')
+        right_foot_pos = self.robot.get_body_pos('right_foot')
+        foot_pos = np.stack([left_foot_pos, right_foot_pos], axis=0)
+        
+        #print("foot_pos: ", foot_pos)
+
+        foot_dist = np.linalg.norm(foot_pos[0, :] - foot_pos[1, :])
         fd = self.parameters.min_dist
         max_df = self.parameters.max_dist
         d_min = np.clip(foot_dist - fd, -0.5, 0.)
@@ -208,13 +274,18 @@ class WalkV3(Reward):
         """
         Calculates the reward based on the distance between the knee of the humanoid.
         """
-        foot_pos = self.rigid_state[:, self.knee_indices, :2] # TODO Get the knee indices
-        foot_dist = np.linalg.norm(foot_pos[:, 0, :] - foot_pos[:, 1, :], axis=1)
+        left_knee_pos = self.robot.get_body_pos('left_knee')
+        right_knee_pos = self.robot.get_body_pos('right_knee')
+        knee_pos = np.stack([left_knee_pos, right_knee_pos], axis=0)
+
+        #print("knee_pos: ", knee_pos)
+        
+        knee_dist = np.linalg.norm(knee_pos[0, :] - knee_pos[1, :])
         fd = self.parameters.min_dist
         max_df = self.parameters.max_dist / 2
 
-        d_min = np.clip(foot_dist - fd, -0.5, 0.)
-        d_max = np.clip(foot_dist - max_df, 0, 0.5)
+        d_min = np.clip(knee_dist - fd, -0.5, 0.)
+        d_max = np.clip(knee_dist - max_df, 0, 0.5)
         return (np.exp(-np.abs(d_min) * 100) + np.exp(-np.abs(d_max) * 100)) / 2
 
     def _reward_foot_slip(self):
@@ -223,12 +294,16 @@ class WalkV3(Reward):
         and the speed of the feet. A contact threshold is used to determine if the foot is in contact 
         with the ground. The speed of the foot is calculated and scaled by the contact condition.
         """
-        #contact = self.contact_forces[:, self.feet_indices, 2] > 5. # TODO mjData.contact
         contact = self.contact_forces > 5
-        foot_speed_norm = np.linalg.norm(self.rigid_state[:, self.feet_indices, 10:12], axis=2) # TODO
+        left_foot_speed_norm = np.linalg.norm(self.robot.get_subtree_linvel(body_name='left_ankle_link')[0:2])
+        right_foot_speed_norm = np.linalg.norm(self.robot.get_subtree_linvel(body_name='right_ankle_link')[0:2])
+        foot_speed_norm = np.stack([np.array([left_foot_speed_norm]), np.array([right_foot_speed_norm])], axis=0)
+
+
+        #print("foot_speed_norm: ", foot_speed_norm)
         rew = np.sqrt(foot_speed_norm)
         rew *= contact
-        return np.sum(rew, axis=1)   
+        return np.sum(rew)   
 
     def _reward_feet_air_time(self):
         """
@@ -236,29 +311,39 @@ class WalkV3(Reward):
         checking the first contact with the ground after being in the air. The air time is
         limited to a maximum value for reward calculation.
         """
-        #contact = self.contact_forces[:, self.feet_indices, 2] > 5. # TODO mjData.contact
-        contact = self.contact_forces > 5
-        
-        stance_mask = self._get_gait_phase()
+        contact = self.contact_forces > 5 # 2x1
+        #print("contact: ", contact)
+        stance_mask = self._get_gait_phase() # 2
+        stance_mask = stance_mask.reshape(2, 1) # 2x1
+        #print("stance_mask: ", stance_mask)
+        #print("last_contacts: ", self.last_contacts)
         self.contact_filt = np.logical_or(np.logical_or(contact, stance_mask), self.last_contacts)
+        #print("contact_filt: ", self.contact_filt)
         self.last_contacts = contact
+        #print("last_contacts: ", self.last_contacts)
         first_contact = (self.feet_air_time > 0.) * self.contact_filt
+        #print("first_contact: ", first_contact)
         self.feet_air_time += self.dt
-        air_time = self.feet_air_time.clamp(0, 0.5) * first_contact
+        #print("feet_air_time: ", self.feet_air_time)
+        air_time = self.feet_air_time.clip(0, 0.5) * first_contact
+        #print("air_time: ", air_time)
         self.feet_air_time *= ~self.contact_filt
-        return air_time.sum(dim=1)
+        #print("feet_air_time: ", self.feet_air_time)
+        #print("sum air_time: ", np.sum(air_time),"check:",air_time.sum(axis=1),"air_time.sum(axis=0)",air_time.sum(axis=0))
+        return np.sum(air_time)
 
     def _reward_feet_contact_number(self):
         """
         Calculates a reward based on the number of feet contacts aligning with the gait phase. 
         Rewards or penalizes depending on whether the foot contact matches the expected gait phase.
         """
-        #contact = self.contact_forces[:, self.feet_indices, 2] > 5. # TODO mjData.contact
         contact = self.contact_forces > 5
         
         stance_mask = self._get_gait_phase()
+        stance_mask = stance_mask.reshape(2, 1)
         reward = np.where(contact == stance_mask, 1, -0.3)
-        return np.mean(reward, axis=1)
+        #print("reward: ", reward, "check  np.mean(reward, axis=1) ", np.mean(reward, axis=0))
+        return np.mean(reward, axis=0) # TODO CHECK THIS
 
     def _reward_orientation(self):
         """
@@ -266,7 +351,6 @@ class WalkV3(Reward):
         from the desired base orientation using the base euler angles and the projected gravity vector.
         """
         #
-        self.base_quat[:] = self._env.data.qpos[3:7].copy() # TODO define base quat
         self.base_euler_xyz = R.from_quat(self.base_quat,scalar_first=True).as_euler('xyz', degrees=False)
         # 
         # Rotate a vector by the inverse of a quaternion
@@ -275,8 +359,8 @@ class WalkV3(Reward):
         quat = Quaternion(self.base_quat)
         self.projected_gravity = quat.inverse.rotate(self.gravity_vec)
         #
-        quat_mismatch = np.exp(-np.sum(np.abs(self.base_euler_xyz[:2]), axis=1) * 10)
-        orientation = np.exp(-np.norm(self.projected_gravity[:, :2], axis=1) * 20)
+        quat_mismatch = np.exp(-np.sum(np.abs(self.base_euler_xyz[:2])) * 10)
+        orientation = np.exp(-np.linalg.norm(self.projected_gravity[:2]) * 20)
         return (quat_mismatch + orientation) / 2.
 
     def _reward_feet_contact_forces(self):
@@ -308,30 +392,29 @@ class WalkV3(Reward):
         on penalizing deviation in yaw and roll directions. Excludes yaw and roll from the main penalty.
         """
 
-        # TODO: Subtract to qpos the default joint angles. Then exclude left_hip_yaw_joint, left_hip_roll_joint and right_hip_yaw_joint, right_hip_roll_joint
-        default_joint_angles = { # = target angles [rad] when action = 0.0
-           'left_hip_yaw_joint' : 0. ,   
-           'left_hip_roll_joint' : 0,               
-           'left_hip_pitch_joint' : -0.4,         
-           'left_knee_joint' : 0.8,       
-           'left_ankle_joint' : -0.4,     
-           'right_hip_yaw_joint' : 0., 
-           'right_hip_roll_joint' : 0, 
-           'right_hip_pitch_joint' : -0.4,                                       
-           'right_knee_joint' : 0.8,                                             
-           'right_ankle_joint' : -0.4                                     
-        }
+        # self.default_joint_angles = { # = target angles [rad] when action = 0.0
+        #    'left_hip_yaw_joint' : 0. ,   
+        #    'left_hip_roll_joint' : 0,               
+        #    'left_hip_pitch_joint' : -0.4,         
+        #    'left_knee_joint' : 0.8,       
+        #    'left_ankle_joint' : -0.4,     
+        #    'right_hip_yaw_joint' : 0., 
+        #    'right_hip_roll_joint' : 0, 
+        #    'right_hip_pitch_joint' : -0.4,                                       
+        #    'right_knee_joint' : 0.8,                                             
+        #    'right_ankle_joint' : -0.4                                     
+        # }
 
-        default_joint_pd_target = default_joint_angles.values()
-        joint_diff = self.dof_pos - default_joint_pd_target
+        default_joint_pd_target = self.default_joint_pd_target_values
+        joint_pos = self.dof_pos[0:10] # First 10 elements are the joint positions of the robot legs
+        
+        joint_diff = joint_pos - default_joint_pd_target
 
-        # TODO
-
-        left_yaw_roll = joint_diff[:, :2]
-        right_yaw_roll = joint_diff[:, 6: 8]
-        yaw_roll = torch.norm(left_yaw_roll, dim=1) + torch.norm(right_yaw_roll, dim=1)
-        yaw_roll = torch.clamp(yaw_roll - 0.1, 0, 50)
-        return torch.exp(-yaw_roll * 100) - 0.01 * torch.norm(joint_diff, dim=1)
+        left_yaw_roll = joint_diff[:2]
+        right_yaw_roll = joint_diff[5: 7]
+        yaw_roll = np.linalg.norm(left_yaw_roll) + np.linalg.norm(right_yaw_roll)
+        yaw_roll = np.clip(yaw_roll - 0.1, 0, 50)
+        return np.exp(-yaw_roll * 100) - 0.01 * np.linalg.norm(joint_diff)
 
     def _reward_base_height(self):
         """
@@ -340,21 +423,25 @@ class WalkV3(Reward):
         of its feet when they are in contact with the ground.
         """
         stance_mask = self._get_gait_phase()
+        stance_mask = stance_mask.reshape(2, 1)
 
-        # TODO What is the root state? root state is pos = [0.0, 0.0, 1.] # x,y,z [m] rot = [0.0, 0.0, 0.0, 1.0] # x,y,z,w [quat]
-        # In my case it is [0 0 0.98 1 0 0 0] -> qpos[0:7]
-        measured_heights = torch.sum(
-            self.rigid_state[:, self.feet_indices, 2] * stance_mask, dim=1) / torch.sum(stance_mask, dim=1)
-        base_height = self.root_states[:, 2] - (measured_heights - 0.05)
-        return torch.exp(-torch.abs(base_height - self.parameters.base_height_target) * 100)
+        left_foot_pos = self.robot.get_body_pos('left_foot')
+        right_foot_pos = self.robot.get_body_pos('right_foot')
+        foot_pos = np.stack([left_foot_pos, right_foot_pos], axis=0)
+
+        #print("foot_pos: ", foot_pos)
+
+        measured_heights = np.sum(
+            foot_pos[:,2] * stance_mask) / np.sum(stance_mask)
+        base_height = self.root_states[2] - (measured_heights - 0.05)
+        return np.exp(-np.abs(base_height - self.parameters.base_height_target) * 100)
 
     def _reward_base_acc(self):
         """
         Computes the reward based on the base's acceleration. Penalizes high accelerations of the robot's base,
         encouraging smoother motion.
         """
-        # TODO
-        root_acc = self.last_root_vel - self.root_states[:, 7:13] # Why doesn't divide by dt?
+        root_acc = self.last_root_vel - self.root_states[7:13] # Why doesn't divide by dt?
         
         #rew = torch.exp(-torch.norm(root_acc, dim=1) * 3)
         root_acc = np.array(root_acc)
@@ -408,7 +495,7 @@ class WalkV3(Reward):
         Calculates a reward based on how closely the robot's linear velocity matches the commanded values.
         """
         # Compute lin_vel_error
-        lin_vel_error = np.sum(np.square(self.commands[:2] - self.base_lin_vel[:2]), axis=1)
+        lin_vel_error = np.sum(np.square(self.commands[:2] - self.base_lin_vel[:2]))
 
         # Compute the final result
         result = np.exp(-lin_vel_error * self.parameters.tracking_sigma)
@@ -437,17 +524,23 @@ class WalkV3(Reward):
         contact = self.contact_forces > 5
 
         # Get the z-position of the feet and compute the change in z-position
-        feet_z = self.rigid_state[self.feet_indices, 2] - 0.05 # TODO
+        left_foot_z = np.array([self.robot.get_body_pos('left_foot')[2]]) # In reality it is the z position of the ankle. With -0.05 it is the z position of the foot.
+        right_foot_z = np.array([self.robot.get_body_pos('right_foot')[2]])
+        feet_z = np.stack([left_foot_z, right_foot_z], axis=0)
+        #print("feet_z: ", feet_z)
+        feet_z = feet_z - 0.05
         delta_z = feet_z - self.last_feet_z
-        self.feet_height += delta_z # TODO
+        self.feet_height += delta_z
         self.last_feet_z = feet_z
 
         # Compute swing mask
-        swing_mask = 1 - self._get_gait_phase()
+        stance_mask = self._get_gait_phase()
+        stance_mask = stance_mask.reshape(2, 1)
+        swing_mask = 1 - stance_mask
 
         # feet height should be closed to target feet height at the peak
-        rew_pos = torch.abs(self.feet_height - self.cfg.rewards.target_feet_height) < 0.01
-        rew_pos = torch.sum(rew_pos * swing_mask, dim=1)
+        rew_pos = np.abs(self.feet_height - self.parameters.target_feet_height) < 0.01
+        rew_pos = np.sum(rew_pos * swing_mask)
         self.feet_height *= ~contact
         return rew_pos
 
@@ -460,30 +553,36 @@ class WalkV3(Reward):
         # Compute absolute values
         absolute_speed = np.abs(self.base_lin_vel[0])
         absolute_command = np.abs(self.commands[0])
-
+        #print("absolute_speed: ", absolute_speed)
+        #print("absolute_command: ", absolute_command)
         # Define speed criteria for desired range
         speed_too_low = absolute_speed < 0.5 * absolute_command
+        #print("speed_too_low: ", speed_too_low)
         speed_too_high = absolute_speed > 1.2 * absolute_command
+        #print("speed_too_high: ", speed_too_high)
         speed_desired = ~(speed_too_low | speed_too_high)
+        #print("speed_desired: ", speed_desired)
 
         # Check if the speed and command directions are mismatched
         sign_mismatch = np.sign(self.base_lin_vel[0]) != np.sign(self.commands[0])
-
-        # Initialize reward array
-        reward = np.zeros_like(self.base_lin_vel[0])
+        #print("sign_mismatch: ", sign_mismatch)
+        # Initialize reward scalar
+        reward = 0.0
 
         # Assign rewards based on conditions
-        # Speed too low
-        reward[speed_too_low] = -1.0
-        # Speed too high
-        reward[speed_too_high] = 0.0
-        # Speed within desired range
-        reward[speed_desired] = 1.2
+        if speed_too_low:
+            reward = -1.0
+        elif speed_too_high:
+            reward = 0.0
+        elif speed_desired:
+            reward = 1.2
+
         # Sign mismatch has the highest priority
-        reward[sign_mismatch] = -2.0
+        if sign_mismatch:
+            reward = -2.0
 
         # Return the reward multiplied by the condition
-        return reward * (np.abs(self.commands[0]) > 0.1)
+        return reward * (np.abs(self.commands[0]) > 0.1) # OK
 
     def _reward_torques(self):
         """

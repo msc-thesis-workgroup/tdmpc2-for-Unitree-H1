@@ -48,10 +48,11 @@ class Walk(Task):
         ) + self._env.action_low
     
     def reset_model(self,env: Environment) -> np.array:
+        self._reward.reset()
         return self.get_obs(env)
     
     def get_terminated(self, env: Environment) -> tuple[bool, dict]:
-        return env.data.qpos[2] < 0.2, {}
+        return env.data.qpos[2] < 0.6, {} # default value was 0.2
 
     def set_reward(self, reward: Reward):
         self._reward = reward

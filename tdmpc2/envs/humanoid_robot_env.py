@@ -8,10 +8,14 @@ from gymnasium.envs.mujoco import MujocoEnv
 from gymnasium.spaces import Box
 from dm_control.mujoco import index
 from dm_control.mujoco.engine import NamedIndexStructs
-
+import copy
+import gc
+from scipy.spatial.transform import Rotation as R
 # Local import
 from .wrappers.dmc_wrapper import MjDataWrapper, MjModelWrapper
 from .environment import Environment
+from .utils import TrajectoryPlanner
+from .utils import PositionController
 
 from .robots import H1
 
@@ -19,6 +23,7 @@ from .rewards import (
     WalkV0,
     WalkV1,
     WalkV2,
+    WalkV3,
 )
 from .tasks import (
     Walk,
@@ -49,6 +54,7 @@ REWARDS = {
     "walk-v0": WalkV0,
     "walk-v1": WalkV1,
     "walk-v2": WalkV2,
+    "walk-v3": WalkV3,
 }
 
 DEFAULT_TIME_STEP = 0.002
@@ -58,7 +64,7 @@ class HumanoidRobotEnv(MujocoEnv, gym.utils.EzPickle,Environment):
         "render_modes": ["human", "rgb_array", "depth_array"],
         "render_fps": 50,
     }
-    # As far as I understand, the parameters robot, control, task are passed as kwargs to the __init__ function by the register function.
+    # The parameters: robot, control, task are passed as kwargs to the __init__ function by make_env function in env_builder.py. All the possible environments are registered in env_builder.py before the make_env function is called.
     def __init__(
         self,
         robot=None,
@@ -75,19 +81,19 @@ class HumanoidRobotEnv(MujocoEnv, gym.utils.EzPickle,Environment):
         assert robot and task and version, f"{robot} {task} {version}"
         self.metadata["render_fps"] = 1 / (DEFAULT_TIME_STEP*frame_skip)
         gym.utils.EzPickle.__init__(self, metadata=self.metadata)
-        
+
         # Go back to the previous directory
         asset_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-        
+
         asset_path = os.path.join(asset_path, "asset")
 
         model_path = os.path.join(asset_path,robot.upper())
         model_path = os.path.join(model_path, f"scene.xml")
 
         print("[DEBUG: basic_locomotion_env] model_path:", model_path)
+        print("[DEBUG: basic_locomotion_env] instance of robot:", robot, "instance of task:", task, "version:", version)
 
-
-        self.robot = ROBOTS[robot]()    
+        self.robot = ROBOTS[robot]()
         self.task = TASKS[task]()
         self.task.set_observation_space(self.robot)
 
@@ -150,73 +156,83 @@ class HumanoidRobotEnv(MujocoEnv, gym.utils.EzPickle,Environment):
             len(self.data.qpos),
         )
 
+        self.controller = PositionController()
+
     def get_joint_torques(self,ctrl):
-        
+
         # TODO(my-rice): I need to change this. The kp and kd values are hard coded. I need to take them from the specific robot class. (from robots.py)
         # kp = np.array([200, 200, 200, 300, 40, 200, 200, 200, 300, 40, 300, 100, 100, 100, 100, 100, 100, 100, 100])
         # kd = np.array([5, 5, 5, 6, 2, 5, 5, 5, 6, 2, 6, 2, 2, 2, 2, 2, 2, 2, 2])
-        
+
         kp = self.robot.get_kp()
         kd = self.robot.get_kd()
 
-        self.data.ctrl = ctrl
-
-        actuator_length = self.data.actuator_length
+        actuator_length = self.data.qpos[7:26] # self.data.actuator_length
         error = ctrl - actuator_length
         m = self.model
         d = self.data
-        
+
         empty_array = np.zeros(m.actuator_dyntype.shape)
-        
+
         ctrl_dot = np.zeros(m.actuator_dyntype.shape) if np.array_equal(m.actuator_dyntype,empty_array) else d.act_dot[m.actuator_actadr + m.actuator_actnum - 1]
-        
-        error_dot = ctrl_dot - self.data.actuator_velocity
-        
+
+        error_dot = ctrl_dot - self.data.qvel[6:26] # self.data.actuator_velocity
+
         joint_torques = kp*error + kd*error_dot
 
         return joint_torques
 
 
-    # def get_joint_torques_by_inverse_dynamics(self, desired_joint_position):
 
-    #     #print("[DEBUG basic_locomotion_env]: desired_joint_position:", desired_joint_position)
-    #     old_qpos = self.data.qpos.copy()
-    #     old_qvel = self.data.qvel.copy()
-    #     #print("[DEBUG basic_locomotion_env]: qpos:", qpos)
-    #     ideal_pose = np.concatenate((old_qpos[0:3],[1,0,0,0]))
-    #     ideal_pose[0] = old_qpos[0]+1*0.002 # I want to move the robot 2mm in the x direction.
-
-    #     # Set the desired joint position
-    #     self.data.qpos = np.concatenate((ideal_pose,desired_joint_position))
-    #     # compute the gradient to get qvel
-    #     self.data.qvel = np.concatenate(((self.data.qpos[0:3] - old_qpos[0:3]) / self.dt,[0,0,0],(self.data.qpos[7:26] - old_qpos[7:26]) / self.dt))
-    #     # compute the gradient to get qacc
-    #     self.data.qacc = (self.data.qvel - old_qvel) / self.dt
-    #     # Compute the inverse dynamics
-    #     mujoco.mj_inverse(self.model, self.data)
-
-    #     # Get the joint torques
-    #     joint_torques = self.data.qfrc_inverse[6:26] # 
-    #     #print("[DEBUG basic_locomotion_env]: self.data.qfrc_inverse:", self.data.qfrc_inverse, "len(self.data.qfrc_inverse):", len(self.data.qfrc_inverse))
-    #     #print("[DEBUG basic_locomotion_env]: joint_torques:", joint_torques)
-    #     return joint_torques
 
     def step(self, action):
-        
+
         #TODO refactor this. I don't like the fact that these steps are made here. I would like to have them in the task class. Environment should only be responsible for the simulation.
         action_high = self.robot.get_upper_limits()
         action_low = self.robot.get_lower_limits()
 
         desired_joint_position = (action + 1) / 2 * (action_high - action_low) + action_low
-        
-        action = self.get_joint_torques(desired_joint_position)
-        #action = self.get_joint_torques_by_inverse_dynamics(desired_joint_position)
+
+
+        #TODO implement a switch to choose between the two techniques in configuration file
+
+        # SOLUZIONE 1
+        #action = self.get_joint_torques(desired_joint_position)
+        action = self.controller.control_step(self.model, self.data, desired_joint_position, np.zeros_like(self.data.qvel[6:26]))
         self.do_simulation(action, self.frame_skip)
+
+        # SOLUZIONE 2
+        # torque_reference = []
+        # for _ in range(self.frame_skip):
+        #     torque_reference.append(self.get_joint_torques(desired_joint_position))
+        #     self.data.ctrl[:] = torque_reference[-1]
+        #     mujoco.mj_step(self.model, self.data, 1)
+
+        # SOLUZIONE 3
+        # torque_reference = []
+        # t = 0
+        # duration = self.frame_skip*self.model.opt.timestep
+        # traj_planner = TrajectoryPlanner(starting_qpos=self.data.qpos[7:26], starting_qvel=self.data.qvel[6:26], duration=duration, final_qpos=desired_joint_position, final_qvel=np.zeros_like(self.data.qvel[6:26]))
+        # for _ in range(self.frame_skip):
+        #     t = t + self.model.opt.timestep
+        #     desired_pos = traj_planner.get_pos(t)
+        #     desired_vel = traj_planner.get_vel(t)
+        #     torque_reference.append(self.controller.control_step(self.model, self.data, desired_pos, desired_vel))
+        #     self.data.ctrl[:] = torque_reference[-1]
+        #     mujoco.mj_step(self.model, self.data, 1)
+
+        #print("[DEBUG basic_locomotion_env]: qpos error:", self.data.qpos[7:26] - desired_joint_position)
 
         #print("[DEBUG basic_locomotion_env]: env.data.time:", self.data.time)
         obs = self.get_obs()
         self.robot.update_robot_state(self)
-        reward, reward_info = self.task.get_reward(self.robot, action)
+        #reward, reward_info = self.task.get_reward(self.robot, torque_reference)
+        reward, reward_info = self.task.get_reward(self.robot, desired_joint_position)
+
+        #print("[DEBUG basic_locomotion_env]: error:", np.mean(np.abs(self.data.qpos[7:26] - desired_joint_position)))
+        #print("[DEBUG basic_locomotion_env]: velocity:", self.data.qvel)
+        #print("[DEBUG basic_locomotion_env]: self.data.qpos[2]:", self.data.qpos[2])
+
         terminated, terminated_info = self.task.get_terminated(self)
 
         info = {"per_timestep_reward": reward, **reward_info, **terminated_info}

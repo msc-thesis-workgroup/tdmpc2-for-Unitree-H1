@@ -23,7 +23,7 @@ class Parameters:
 
     class scales:
         # reference motion tracking
-        joint_pos = 1.6
+        joint_pos = 2.5 #1.6
         feet_clearance = 1.
         feet_contact_number = 1.2
         # gait
@@ -34,15 +34,15 @@ class Parameters:
         # contact
         feet_contact_forces = -0.01
         # vel tracking
-        tracking_lin_vel = 1.0
+        tracking_lin_vel = 2.0 # 1.0
         tracking_ang_vel = 0.5
         vel_mismatch_exp = 0.5  # lin_z; ang x,y
         low_speed = 0.2
-        track_vel_hard = 0.5
+        track_vel_hard = 2.0 # 0.5
         # base pos
         default_joint_pos = 0.5
         orientation = 1.0
-        base_height = 0.2
+        base_height = 2.0 # 0.2
         base_acc = 0.2
         # energy
         action_smoothness = -0.002
@@ -68,7 +68,7 @@ class WalkV3(Reward):
             ang_vel_yaw = [-0.3, 0.3]    # min max [rad/s]
             heading = [-3.14, 3.14]
         
-        self.commands = np.array([1,0,0,0]) # np.array([lin_vel_x, lin_vel_y, ang_vel_yaw, heading])
+        self.commands = np.array([0.55,0,0,0]) # np.array([lin_vel_x, lin_vel_y, ang_vel_yaw, heading])
 
         self.episode_length_buf = 0
 
@@ -161,27 +161,111 @@ class WalkV3(Reward):
 
     def compute_reward(self):
         reward = 0
-        reward += self.parameters.scales.joint_pos * self._reward_joint_pos()
-        reward += self.parameters.scales.feet_clearance * self._reward_feet_clearance()
-        reward += self.parameters.scales.feet_contact_number * self._reward_feet_contact_number()
-        reward += self.parameters.scales.feet_air_time * self._reward_feet_air_time()
-        reward += self.parameters.scales.foot_slip * self._reward_foot_slip()
-        reward += self.parameters.scales.feet_distance * self._reward_feet_distance()
-        reward += self.parameters.scales.knee_distance * self._reward_knee_distance()
-        reward += self.parameters.scales.feet_contact_forces * self._reward_feet_contact_forces()
-        reward += self.parameters.scales.tracking_lin_vel * self._reward_tracking_lin_vel()
-        reward += self.parameters.scales.tracking_ang_vel * self._reward_tracking_ang_vel()
-        reward += self.parameters.scales.vel_mismatch_exp * self._reward_vel_mismatch_exp()
-        reward += self.parameters.scales.low_speed * self._reward_low_speed()
-        reward += self.parameters.scales.track_vel_hard * self._reward_track_vel_hard()
-        reward += self.parameters.scales.default_joint_pos * self._reward_default_joint_pos()
-        reward += self.parameters.scales.orientation * self._reward_orientation()
-        reward += self.parameters.scales.base_height * self._reward_base_height()
-        reward += self.parameters.scales.base_acc * self._reward_base_acc()
-        reward += self.parameters.scales.action_smoothness * self._reward_action_smoothness()
-        reward += self.parameters.scales.torques * self._reward_torques()
-        reward += self.parameters.scales.dof_vel * self._reward_dof_vel()
-        reward += self.parameters.scales.dof_acc * self._reward_dof_acc()
+
+        reward_term = self.parameters.scales.joint_pos * self._reward_joint_pos()
+        reward_term = max(reward_term, 0)
+        # print("Joint Position Reward: ", reward_term)
+        reward += reward_term
+
+        reward_term = self.parameters.scales.feet_clearance * self._reward_feet_clearance()
+        reward_term = max(reward_term, 0)
+        # print("Feet Clearance Reward: ", reward_term)
+        reward += reward_term
+
+        reward_term = self.parameters.scales.feet_contact_number * self._reward_feet_contact_number()
+        reward_term = max(reward_term, 0)
+        # print("Feet Contact Number Reward: ", reward_term)
+        reward += reward_term
+
+        reward_term = self.parameters.scales.feet_air_time * self._reward_feet_air_time()
+        reward_term = max(reward_term, 0)
+        # print("Feet Air Time Reward: ", reward_term)
+        reward += reward_term
+
+        reward_term = self.parameters.scales.foot_slip * self._reward_foot_slip()
+        reward_term = max(reward_term, 0)
+        # print("Foot Slip Reward: ", reward_term)
+        reward += reward_term
+
+        reward_term = self.parameters.scales.feet_distance * self._reward_feet_distance()
+        reward_term = max(reward_term, 0)
+        # print("Feet Distance Reward: ", reward_term)
+        reward += reward_term
+
+        reward_term = self.parameters.scales.knee_distance * self._reward_knee_distance()
+        reward_term = max(reward_term, 0)
+        # print("Knee Distance Reward: ", reward_term)
+        reward += reward_term
+
+        reward_term = self.parameters.scales.feet_contact_forces * self._reward_feet_contact_forces()
+        reward_term = max(reward_term, 0)
+        # print("Feet Contact Forces Reward: ", reward_term)
+        reward += reward_term
+
+        reward_term = self.parameters.scales.tracking_lin_vel * self._reward_tracking_lin_vel()
+        reward_term = max(reward_term, 0)
+        # print("Tracking Linear Velocity Reward: ", reward_term)
+        reward += reward_term
+
+        reward_term = self.parameters.scales.tracking_ang_vel * self._reward_tracking_ang_vel()
+        reward_term = max(reward_term, 0)
+        # print("Tracking Angular Velocity Reward: ", reward_term)
+        reward += reward_term
+
+        reward_term = self.parameters.scales.vel_mismatch_exp * self._reward_vel_mismatch_exp()
+        reward_term = max(reward_term, 0)
+        # print("Velocity Mismatch Exponential Reward: ", reward_term)
+        reward += reward_term
+
+        reward_term = self.parameters.scales.low_speed * self._reward_low_speed()
+        reward_term = max(reward_term, 0)
+        # print("Low Speed Reward: ", reward_term)
+        reward += reward_term
+
+        reward_term = self.parameters.scales.track_vel_hard * self._reward_track_vel_hard()
+        reward_term = max(reward_term, 0)
+        # print("Track Velocity Hard Reward: ", reward_term)
+        reward += reward_term
+
+        reward_term = self.parameters.scales.default_joint_pos * self._reward_default_joint_pos()
+        reward_term = max(reward_term, 0)
+        # print("Default Joint Position Reward: ", reward_term)
+        reward += reward_term
+
+        reward_term = self.parameters.scales.orientation * self._reward_orientation()
+        reward_term = max(reward_term, 0)
+        # print("Orientation Reward: ", reward_term)
+        reward += reward_term
+
+        reward_term = self.parameters.scales.base_height * self._reward_base_height()
+        reward_term = max(reward_term, 0)
+        # print("Base Height Reward: ", reward_term)
+        reward += reward_term
+
+        reward_term = self.parameters.scales.base_acc * self._reward_base_acc()
+        reward_term = max(reward_term, 0)
+        # print("Base Acceleration Reward: ", reward_term)
+        reward += reward_term
+
+        reward_term = self.parameters.scales.action_smoothness * self._reward_action_smoothness()
+        reward_term = max(reward_term, 0)
+        # print("Action Smoothness Reward: ", reward_term)
+        reward += reward_term
+
+        reward_term = self.parameters.scales.torques * self._reward_torques()
+        reward_term = max(reward_term, 0)
+        # print("Torques Reward: ", reward_term)
+        reward += reward_term
+
+        reward_term = self.parameters.scales.dof_vel * self._reward_dof_vel()
+        reward_term = max(reward_term, 0)
+        # print("DOF Velocity Reward: ", reward_term)
+        reward += reward_term
+
+        reward_term = self.parameters.scales.dof_acc * self._reward_dof_acc()
+        reward_term = max(reward_term, 0)
+        # print("DOF Acceleration Reward: ", reward_term)
+        reward += reward_term
         # reward += self.parameters.scales.collision * self._reward_collision()
         
         return reward
@@ -343,7 +427,7 @@ class WalkV3(Reward):
         stance_mask = stance_mask.reshape(2, 1)
         reward = np.where(contact == stance_mask, 1, -0.3)
         #print("reward: ", reward, "check  np.mean(reward, axis=1) ", np.mean(reward, axis=0))
-        return np.mean(reward, axis=0) # TODO CHECK THIS
+        return np.mean(reward, axis=0)
 
     def _reward_orientation(self):
         """
@@ -411,7 +495,7 @@ class WalkV3(Reward):
         joint_diff = joint_pos - default_joint_pd_target
 
         left_yaw_roll = joint_diff[:2]
-        right_yaw_roll = joint_diff[5: 7]
+        right_yaw_roll = joint_diff[5:7]
         yaw_roll = np.linalg.norm(left_yaw_roll) + np.linalg.norm(right_yaw_roll)
         yaw_roll = np.clip(yaw_roll - 0.1, 0, 50)
         return np.exp(-yaw_roll * 100) - 0.01 * np.linalg.norm(joint_diff)
@@ -434,7 +518,7 @@ class WalkV3(Reward):
         measured_heights = np.sum(
             foot_pos[:,2] * stance_mask) / np.sum(stance_mask)
         base_height = self.root_states[2] - (measured_heights - 0.05)
-        return np.exp(-np.abs(base_height - self.parameters.base_height_target) * 100)
+        return np.exp(-np.abs(base_height - self.parameters.base_height_target) * 90)  # * 100)
 
     def _reward_base_acc(self):
         """

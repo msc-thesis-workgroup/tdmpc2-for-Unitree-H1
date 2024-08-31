@@ -15,8 +15,8 @@ eval_freq: 150000
 from_scratch: false
 
 # high level parameters (my-rice)
-max_episode_steps: 5000 # default: 1000
-frame_skip: 1 # default: 10
+max_episode_steps: 1000 # default: 1000
+frame_skip: 5 # default: 10
 
 generalize_movement: true
 

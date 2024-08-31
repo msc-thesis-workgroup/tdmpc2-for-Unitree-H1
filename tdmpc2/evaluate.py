@@ -24,6 +24,23 @@ import pandas as pd
 torch.backends.cudnn.benchmark = True
 from pyquaternion import Quaternion
 
+df_info = pd.DataFrame(columns=[
+    "stand_reward",
+    "small_control",
+    "move",
+    "standing",
+    "upright",
+    "improve_gait",
+    "robot_velocity_x",
+    "robot_position_y",
+    "com_velocity_x",
+    "com_position_y",
+    "orientation_x",
+    "centered_reward",
+    "stay_inline_reward",
+    "robot_velocity",
+])
+
 @hydra.main(config_name="config", config_path=".")
 def evaluate(cfg: dict):
     """
@@ -110,8 +127,8 @@ def evaluate(cfg: dict):
             obs, done, ep_reward, t = env.reset(task_idx=task_idx), False, 0, 0
             #Adapt to the new observation format
             obs = obs[0] if isinstance(obs, tuple) else obs
-            if cfg.generalize_movement:
-                obs = generalize_walk_direction(obs)
+            #if cfg.generalize_movement:
+            #    obs = generalize_walk_direction(obs)
                 
             if cfg.save_video:
                 frames = [env.render()]
@@ -122,21 +139,43 @@ def evaluate(cfg: dict):
                 #Adapt to the new observation and done format
                 obs = obs[0] if isinstance(obs, tuple) else obs
 
-                if cfg.generalize_movement:
-                    obs = generalize_walk_direction(obs)
+                #if cfg.generalize_movement:
+                #    obs = generalize_walk_direction(obs)
                     
 
                 done = terminated or truncated
                 ep_reward += reward
                 t += 1
+
+                # df_info.loc[len(df_info)] = [
+                #     info["stand_reward"],
+                #     info["small_control"],
+                #     info["move"],
+                #     info["standing"],
+                #     info["upright"],
+                #     info["improve_gait"],
+                #     info["robot_velocity_x"],
+                #     info["robot_position_y"],
+                #     info["com_velocity_x"],
+                #     info["com_position_y"],
+                #     info["orientation_x"],
+                #     info["centered_reward"],
+                #     info["stay_inline_reward"],
+                #     info["robot_velocity"]
+                # ]
+
                 if cfg.save_video:
                     frames.append(env.render())
             ep_rewards.append(ep_reward)
             ep_successes.append(info["success"])
             if cfg.save_video:
 
-                df_observations.to_csv( os.path.join(video_dir, f"{task}-{i}.csv"), index=False)
+                #df_observations.to_csv( os.path.join(video_dir, f"{task}-{i}.csv"), index=False)
 
+                df_info.to_csv( os.path.join(video_dir, f"{task}-{i}.csv"), index=False)
+
+                
+                print("t:", t,"Saving video to", video_dir)
                 imageio.mimsave(
                     os.path.join(video_dir, f"{task}-{i}.mp4"), frames, fps=1/env.unwrapped.dt
                 )

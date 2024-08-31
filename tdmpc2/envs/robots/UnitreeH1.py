@@ -6,6 +6,7 @@ import copy
 from ..environment import Environment
 import mujoco
 
+import transforms3d as tf3
 
 _DOF = 26
 class H1(Robot):
@@ -24,6 +25,12 @@ class H1(Robot):
 
         self.legs_joints = ["left_hip_yaw", "left_hip_roll", "left_hip_pitch", "left_knee", "left_ankle", "right_hip_yaw", "right_hip_roll", "right_hip_pitch", "right_knee", "right_ankle"]
         self.geom_to_body_name = None
+
+        self._env = None
+        
+        self.lfoot_body_name = "left_ankle_link"
+        self.rfoot_body_name = "right_ankle_link"
+        self.robot_root_name = "pelvis"
 
         # self._env.model.jnt_range:          [[ 0.    0.  ]
         #                                     [-0.43  0.43]
@@ -51,6 +58,17 @@ class H1(Robot):
         """Updates the robot state with the environment data."""
         self._env = env # TODO: replace this so it only gets the necessary data from the environment.
     
+    def _udate_robot_state_TESTING(self, model, data):
+        class TestEnv:
+            def __init__(self, model, data):
+                self.model = model
+                self.data = data
+        if self._env is None:
+            self._env = TestEnv(model, data)
+        else:
+            self._env.model = model
+            self._env.data = data
+
     def get_feet_contacts(self):
         """Returns the contact forces of the feet."""
         model = self._env.model
@@ -93,6 +111,9 @@ class H1(Robot):
         """Returns the joint velocities."""
         return self._env.data.qvel.copy()
     
+    def get_qacc(self):
+        """Returns the joint accelerations."""
+        return self._env.data.qacc.copy()
 
     def get_upper_limits(self):
         """Returns the upper limits of the joints. These are the maximum angular positions that the joints can reach."""
@@ -277,7 +298,135 @@ class H1(Robot):
         
         #print("[DEBUG: robots.py]: body_name:",body_name)
         return self._env.named.data.xpos[body_name].copy()
+    
     def get_subtree_linvel(self,body_name):
         
         return self._env.named.data.subtree_linvel[body_name].copy()
         
+    ### Walk V4
+    def get_robot_mass(self):
+        return mujoco.mj_getTotalmass(self._env.model)
+    
+    def get_action_dim(self):
+        print("[DEBUG: robots.py]: self._env.model.nu:",self._env.model.nu)
+        return self._env.model.nu
+
+    def check_rfoot_floor_collision(self):
+        """
+        Returns True if there is a collision between right foot and floor.
+        """
+        return (len(self.get_rfoot_floor_contacts())>0)
+
+    def get_rfoot_floor_contacts(self):
+        """
+        Returns list of right foot and floor contacts.
+        """
+        contacts = [self._env.data.contact[i] for i in range(self._env.data.ncon)]
+        rcontacts = []
+
+        rfeet = [self.rfoot_body_name] if isinstance(self.rfoot_body_name, str) else self.rfoot_body_name
+        rfeet_ids = [self._env.model.body(bn).id for bn in rfeet]
+        for i,c in enumerate(contacts):
+            geom1_body = self._env.model.body(self._env.model.geom_bodyid[c.geom1])
+            geom2_body = self._env.model.body(self._env.model.geom_bodyid[c.geom2])
+            geom1_is_floor = (self._env.model.body(geom1_body.rootid).name!=self.robot_root_name)
+            geom2_is_rfoot = (self._env.model.geom_bodyid[c.geom2] in rfeet_ids)
+            if (geom1_is_floor and geom2_is_rfoot):
+                rcontacts.append((i,c))
+        return rcontacts
+    
+    def check_lfoot_floor_collision(self):
+        """
+        Returns True if there is a collision between left foot and floor.
+        """
+        return (len(self.get_lfoot_floor_contacts())>0)
+    
+    def get_lfoot_floor_contacts(self):
+        """
+        Returns list of left foot and floor contacts.
+        """
+        contacts = [self._env.data.contact[i] for i in range(self._env.data.ncon)]
+        lcontacts = []
+
+        lfeet = [self.lfoot_body_name] if isinstance(self.lfoot_body_name, str) else self.lfoot_body_name
+        lfeet_ids = [self._env.model.body(bn).id for bn in lfeet]
+        for i,c in enumerate(contacts):
+            geom1_body = self._env.model.body(self._env.model.geom_bodyid[c.geom1])
+            geom2_body = self._env.model.body(self._env.model.geom_bodyid[c.geom2])
+            geom1_is_floor = (self._env.model.body(geom1_body.rootid).name!=self.robot_root_name)
+            geom2_is_lfoot = (self._env.model.geom_bodyid[c.geom2] in lfeet_ids)
+            if (geom1_is_floor and geom2_is_lfoot):
+                lcontacts.append((i,c))
+        return lcontacts
+    
+    def get_object_xpos_by_name(self, obj_name, object_type):
+        if object_type=="OBJ_BODY":
+            return self._env.data.body(obj_name).xpos
+        elif object_type=="OBJ_GEOM":
+            return self._env.data.geom(obj_name).xpos
+        elif object_type=="OBJ_SITE":
+            return self._env.data.site(obj_name).xpos
+        else:
+            raise Exception("object type should either be OBJ_BODY/OBJ_GEOM/OBJ_SITE.")
+        
+    
+    def get_object_xquat_by_name(self, obj_name, object_type):
+        if object_type=="OBJ_BODY":
+            return self._env.data.body(obj_name).xquat
+        if object_type=="OBJ_SITE":
+            xmat = self._env.data.site(obj_name).xmat
+            return tf3.quaternions.mat2quat(xmat)
+        else:
+            raise Exception("object type should be OBJ_BODY/OBJ_SITE.")
+        
+
+    def get_lfoot_body_vel(self, frame=0):
+        """
+        Returns translational and rotational velocity of left foot.
+        """
+        if isinstance(self.lfoot_body_name, list):
+            return [self.get_body_vel(i, frame=frame) for i in self.lfoot_body_name]
+        return self.get_body_vel(self.lfoot_body_name, frame=frame)
+    
+    def get_rfoot_body_vel(self, frame=0):
+        """
+        Returns translational and rotational velocity of right foot.
+        """
+        if isinstance(self.rfoot_body_name, list):
+            return [self.get_body_vel(i, frame=frame) for i in self.rfoot_body_name]
+        return self.get_body_vel(self.rfoot_body_name, frame=frame)
+    
+    def get_body_vel(self, body_name, frame=0):
+        """
+        Returns translational and rotational velocity of a body in body-centered frame, world/local orientation.
+        """
+        body_vel = np.zeros(6)
+        body_id = mujoco.mj_name2id(self._env.model, mujoco.mjtObj.mjOBJ_BODY, body_name)
+        mujoco.mj_objectVelocity(self._env.model, self._env.data, mujoco.mjtObj.mjOBJ_XBODY,
+                                 body_id, body_vel, frame)
+        return [body_vel[3:6], body_vel[0:3]]
+    
+
+    def get_rfoot_grf(self):
+        """
+        Returns total Ground Reaction Force on right foot.
+        """
+        right_contacts = self.get_rfoot_floor_contacts()
+        rfoot_grf = 0
+        for i, con in right_contacts:
+            c_array = np.zeros(6, dtype=np.float64)
+            mujoco.mj_contactForce(self._env.model, self._env.data, i, c_array)
+            rfoot_grf += np.linalg.norm(c_array)
+        return rfoot_grf
+
+    def get_lfoot_grf(self):
+        """
+        Returns total Ground Reaction Force on left foot.
+        """
+        left_contacts = self.get_lfoot_floor_contacts()
+        lfoot_grf = 0
+        for i, con in left_contacts:
+            c_array = np.zeros(6, dtype=np.float64)
+            mujoco.mj_contactForce(self._env.model, self._env.data, i, c_array)
+            lfoot_grf += (np.linalg.norm(c_array))
+        return lfoot_grf

@@ -147,8 +147,8 @@ class WalkV1(Reward):
         #move = (2*move + centered_reward + stay_inline_reward)/4
 
         #move = (5 * move + 1) / 6
-        
-
+        #print("robot.head_height()", robot.head_height())
+        #print("[DEBUG basic_locomotion_tasks]: stand_reward:", stand_reward, "small_control:", small_control, "move:", move, "reward_upper_body:", reward_upper_body, "centered_reward:", centered_reward, "stay_inline_reward:", stay_inline_reward)
         reward = stand_reward*(small_control + 3*move + reward_upper_body + centered_reward + stay_inline_reward)/7 # Trained with a bug. The denominator was "/3" instead of "/7". Now, it is fixed.
 
         return reward, {

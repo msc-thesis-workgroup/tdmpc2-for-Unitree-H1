@@ -24,6 +24,7 @@ from .rewards import (
     WalkV1,
     WalkV2,
     WalkV3,
+    WalkV4,
 )
 from .tasks import (
     Walk,
@@ -55,6 +56,7 @@ REWARDS = {
     "walk-v1": WalkV1,
     "walk-v2": WalkV2,
     "walk-v3": WalkV3,
+    "walk-v4": WalkV4,
 }
 
 DEFAULT_TIME_STEP = 0.002

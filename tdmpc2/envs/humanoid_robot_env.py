@@ -17,7 +17,7 @@ from .environment import Environment
 from .utils import TrajectoryPlanner
 from .utils import PositionController
 
-from .robots import H1
+from .robots import H1, H1Easy
 
 from .rewards import (
     WalkV0,
@@ -25,6 +25,7 @@ from .rewards import (
     WalkV2,
     WalkV3,
     WalkV4,
+    WalkV2Easy
 )
 from .tasks import (
     Walk,
@@ -45,7 +46,9 @@ DEFAULT_ENV_CONFIG = {
     "max_episode_steps": 1000
 }
 
-ROBOTS = {"h1": H1} 
+ROBOTS = {"h1": H1, 
+          "h1_easy": H1Easy
+          }
 
 TASKS = {
     "walk": Walk
@@ -57,6 +60,7 @@ REWARDS = {
     "walk-v2": WalkV2,
     "walk-v3": WalkV3,
     "walk-v4": WalkV4,
+    "walk-v2Easy": WalkV2Easy
 }
 
 DEFAULT_TIME_STEP = 0.002
@@ -158,7 +162,7 @@ class HumanoidRobotEnv(MujocoEnv, gym.utils.EzPickle,Environment):
             len(self.data.qpos),
         )
 
-        self.controller = PositionController()
+        self.controller = PositionController(self.robot)
 
     def get_joint_torques(self,ctrl):
 

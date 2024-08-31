@@ -4,10 +4,12 @@ import mujoco
 
 class PositionController():
 
-    def __init__(self):
+    def __init__(self,robot: Robot):
         #TODO: refactor this
-        self.kp = np.array([200, 200, 200, 300, 40, 200, 200, 200, 300, 40, 300, 100, 100, 100, 100, 100, 100, 100, 100])
-        self.kd = np.array([5, 5, 5, 6, 2, 5, 5, 5, 6, 2, 6, 2, 2, 2, 2, 2, 2, 2, 2])
+        self.kp = self.robot.get_kp()
+        self.kd = self.robot.get_kd()
+        # self.kp = np.array([200, 200, 200, 300, 40, 200, 200, 200, 300, 40, 300, 100, 100, 100, 100, 100, 100, 100, 100])
+        # self.kd = np.array([5, 5, 5, 6, 2, 5, 5, 5, 6, 2, 6, 2, 2, 2, 2, 2, 2, 2, 2])
 
     def control_step(self,model, data, desired_q_pos, desired_q_vel) -> np.array:
         

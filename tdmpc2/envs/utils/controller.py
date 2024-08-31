@@ -1,6 +1,6 @@
 import numpy as np
 import mujoco
-
+from ..robots.robot import Robot
 
 class PositionController():
 

@@ -38,7 +38,7 @@ def get_joint_torques(ctrl,model,data):
 
 	return joint_torques
 
-PATH_TO_MODEL = "asset/H1Easy/scene.xml"
+PATH_TO_MODEL = "asset/H1EASY/scene.xml"
 
 # Load the model
 model = mujoco.MjModel.from_xml_path(PATH_TO_MODEL)
@@ -78,15 +78,15 @@ for i in range(1000):
 
 	#torque = controller.control_step(model=model, data=data, desired_q_pos=target_q[7:26], desired_q_vel=np.zeros_like(target_q[7:26]))
 	
-	print("data.subtree_linvel", named.data.subtree_linvel)
-	print("data.subtree_linvel left_ankle_link", named.data.subtree_linvel["left_ankle_link"])
-	print("data.subtree_linvel right_ankle_link", named.data.subtree_linvel["right_ankle_link"])
+	# print("data.subtree_linvel", named.data.subtree_linvel)
+	# print("data.subtree_linvel left_ankle_link", named.data.subtree_linvel["left_ankle_link"])
+	# print("data.subtree_linvel right_ankle_link", named.data.subtree_linvel["right_ankle_link"])
 	
 	#data.ctrl[:] = torque
 	#data.qpos[:len(target_q)] = target_q
 	#mujoco.mj_step(model, data)
 
-	data.qpos[7:18] = target_q[7:18]
+	data.qpos = target_q
 	
 	#error = data.qpos[7:18] - target_q[7:18]
 	mujoco.mj_forward(model, data)

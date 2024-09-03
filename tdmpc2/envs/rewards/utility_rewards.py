@@ -7,7 +7,8 @@ import numpy as np
 
 def _calc_fwd_vel_reward(self):
     # forward vel reward
-    root_vel = self.robot.get_qvel()[0] # velocity in x direction
+    root_vel = self.robot.center_of_mass_velocity()[0] # self.robot.get_qvel()[0] # velocity in x direction
+    print("[DEBUG utility_rewards]: root_vel:", root_vel)
     error = np.linalg.norm(root_vel - self._goal_speed_ref)
     return np.exp(-error)
 
@@ -31,12 +32,15 @@ def _calc_height_reward(self):
     #                                               self.robot.get_lfoot_floor_contacts())])
     # else:
     #     contact_point = 0
-
-    contact_point = 0
-    current_height = self.robot.get_object_xpos_by_name(self._root_body_name, 'OBJ_BODY')[2]
-    relative_height = current_height - contact_point # Contact point nel mio caso dovrebbe essere sempre 0 (controllando è qualche millimetro). Si fa sto ragionamento perchè se ci sono le scale si considera l'altezza relativa
+    # current_height = self.robot.get_object_xpos_by_name(self._root_body_name, 'OBJ_BODY')[2]
+    # relative_height = current_height - contact_point # Contact point nel mio caso dovrebbe essere sempre 0 (controllando è qualche millimetro). Si fa sto ragionamento perchè se ci sono le scale si considera l'altezza relativa
+    
+    relative_height = self.robot.head_height()
+    
     error = np.abs(relative_height - self._goal_height_ref) 
+    print("[DEBUG utility_rewards]: relative_height:", relative_height)
     deadzone_size = 0.01 + 0.05 * self._goal_speed_ref
+    print("[DEBUG utility_rewards]: deadzone_size:", deadzone_size)
     if error < deadzone_size:
         error = 0
     return np.exp(-40*np.square(error))
@@ -123,6 +127,7 @@ def _calc_foot_pos_clock_reward(self):
 def _calc_body_orient_reward(self, body_name, quat_ref=[1, 0, 0, 0]):
     # body orientation reward
     body_quat = self.robot.get_object_xquat_by_name(body_name, "OBJ_BODY")
+    print("[DEBUG utility_rewards]: body_name:", body_name,"body_quat:", body_quat)
     target_quat = np.array(quat_ref)
     error = 10 * (1 - np.inner(target_quat, body_quat) ** 2)
     return np.exp(-error)

@@ -28,6 +28,11 @@ class H1Easy(Robot):
 
         self._env = None
 
+        self.lfoot_body_name = "left_ankle_link"
+        self.rfoot_body_name = "right_ankle_link"
+        self.robot_root_name = "pelvis"
+
+
 
     # Override the update_robot_state method from the Robot class.
     def update_robot_state(self, env: Environment):
@@ -44,6 +49,18 @@ class H1Easy(Robot):
         else:
             self._env.model = model
             self._env.data = data
+
+    def get_nv(self):
+        return self._env.model.nv
+    
+    def get_nq(self):
+        return self._env.model.nq
+    
+    def get_time(self):
+        return self._env.data.time
+
+    def get_qpos0(self):
+        return self._env.model.key_qpos[0]
 
     def get_feet_contacts(self):
         """Returns the contact forces of the feet."""
@@ -158,6 +175,14 @@ class H1Easy(Robot):
 
         return right_foot_height_pos[2]
         #return self._env.named.data.site_xpos["right_foot", "z"] # Problem here
+
+    def get_lfoot_body_pos(self):
+        """Returns the position of the left foot."""
+        return self._env.named.data.xpos["left_ankle_link"].copy()
+
+    def get_rfoot_body_pos(self):
+        """Returns the position of the right foot."""
+        return self._env.named.data.xpos["right_ankle_link"].copy()
 
     def center_of_mass_position(self):
         """Returns position of the center-of-mass."""

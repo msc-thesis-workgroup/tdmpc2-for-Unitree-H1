@@ -69,6 +69,15 @@ class H1(Robot):
             self._env.model = model
             self._env.data = data
 
+    def get_nv(self):
+        return self._env.model.nv
+    
+    def get_nq(self):
+        return self._env.model.nq
+
+    def get_time(self):
+        return self._env.data.time
+
     def get_feet_contacts(self):
         """Returns the contact forces of the feet."""
         model = self._env.model
@@ -131,6 +140,18 @@ class H1(Robot):
         """Returns the derivative gains for the joints."""
         return self.kd
 
+    def get_nv(self):
+        return self._env.model.nv
+    
+    def get_nq(self):
+        return self._env.model.nq
+    
+    def get_time(self):
+        return self._env.data.time
+
+    def get_qpos0(self):
+        return self._env.model.key_qpos[0]
+
     def torso_upright(self):
         """Returns projection from z-axes of torso to the z-axes of world."""
         return self._env.named.data.xmat["torso_link", "zz"] #OK
@@ -191,6 +212,14 @@ class H1(Robot):
         """Returns the velocity of the center-of-mass."""
         #print("[DEBUG: robots.py]: center_of_mass_velocity:",self._env.named.data.sensordata["pelvis_subtreelinvel"].copy())
         return self._env.named.data.sensordata["pelvis_subtreelinvel"].copy() # Problem here
+
+    def get_lfoot_body_pos(self):
+        """Returns the position of the left foot."""
+        return self._env.named.data.xpos["left_ankle_link"].copy()
+
+    def get_rfoot_body_pos(self):
+        """Returns the position of the right foot."""
+        return self._env.named.data.xpos["right_ankle_link"].copy()
 
     def robot_velocity(self):
         """Returns the velocity of the robot in the global frame."""

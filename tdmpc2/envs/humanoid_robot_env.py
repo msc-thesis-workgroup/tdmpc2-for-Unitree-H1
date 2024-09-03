@@ -8,8 +8,6 @@ from gymnasium.envs.mujoco import MujocoEnv
 from gymnasium.spaces import Box
 from dm_control.mujoco import index
 from dm_control.mujoco.engine import NamedIndexStructs
-import copy
-import gc
 from scipy.spatial.transform import Rotation as R
 # Local import
 from .wrappers.dmc_wrapper import MjDataWrapper, MjModelWrapper
@@ -25,7 +23,11 @@ from .rewards import (
     WalkV2,
     WalkV3,
     WalkV4,
-    WalkV2Easy
+    WalkV5,
+    WalkV0Easy,
+    WalkV2Easy,
+    WalkV4Easy,
+    WalkV5Easy
 )
 from .tasks import (
     Walk,
@@ -47,7 +49,7 @@ DEFAULT_ENV_CONFIG = {
 }
 
 ROBOTS = {"h1": H1, 
-          "h1_easy": H1Easy
+          "h1Easy": H1Easy
           }
 
 TASKS = {
@@ -60,10 +62,15 @@ REWARDS = {
     "walk-v2": WalkV2,
     "walk-v3": WalkV3,
     "walk-v4": WalkV4,
-    "walk-v2Easy": WalkV2Easy
+    "walk-v5": WalkV5,
+    "walk-v0Easy": WalkV0Easy,
+    "walk-v2Easy": WalkV2Easy,
+    "walk-v4Easy": WalkV4Easy,
+    "walk-v5Easy": WalkV5Easy
 }
 
 DEFAULT_TIME_STEP = 0.002
+DEFAULT_COEFF = 0.25
 
 class HumanoidRobotEnv(MujocoEnv, gym.utils.EzPickle,Environment):
     metadata = {
@@ -162,7 +169,7 @@ class HumanoidRobotEnv(MujocoEnv, gym.utils.EzPickle,Environment):
             len(self.data.qpos),
         )
 
-        self.controller = PositionController(self.robot)
+        self.controller = PositionController(self.robot, coeff=DEFAULT_COEFF) # TODO: refactor DEFAULT_COEFF. It isn't good to have it in this module.
 
     def get_joint_torques(self,ctrl):
 
@@ -204,28 +211,26 @@ class HumanoidRobotEnv(MujocoEnv, gym.utils.EzPickle,Environment):
 
         # SOLUZIONE 1
         #action = self.get_joint_torques(desired_joint_position)
-        action = self.controller.control_step(self.model, self.data, desired_joint_position, np.zeros_like(self.data.qvel[6:26]))
-        self.do_simulation(action, self.frame_skip)
+        # action = self.controller.control_step(self.model, self.data, desired_joint_position, np.zeros_like(self.data.qvel[6:]))
+        # self.do_simulation(action, self.frame_skip)
 
         # SOLUZIONE 2
-        # torque_reference = []
-        # for _ in range(self.frame_skip):
-        #     torque_reference.append(self.get_joint_torques(desired_joint_position))
-        #     self.data.ctrl[:] = torque_reference[-1]
-        #     mujoco.mj_step(self.model, self.data, 1)
+        for _ in range(self.frame_skip):
+            torque_reference = self.controller.control_step2(self.model, self.data, desired_joint_position)
+            #torque_reference = self.controller.control_step(self.model, self.data, desired_joint_position, np.zeros_like(self.data.qvel[6:]))
+            self.do_simulation(torque_reference, 1)
 
         # SOLUZIONE 3
-        # torque_reference = []
         # t = 0
         # duration = self.frame_skip*self.model.opt.timestep
-        # traj_planner = TrajectoryPlanner(starting_qpos=self.data.qpos[7:26], starting_qvel=self.data.qvel[6:26], duration=duration, final_qpos=desired_joint_position, final_qvel=np.zeros_like(self.data.qvel[6:26]))
+        # vel_reference = np.zeros_like(self.data.qvel[6:])
+        # traj_planner = TrajectoryPlanner(starting_qpos=self.data.qpos[7:], starting_qvel=vel_reference, duration=duration, final_qpos=desired_joint_position, final_qvel=vel_reference)
         # for _ in range(self.frame_skip):
         #     t = t + self.model.opt.timestep
         #     desired_pos = traj_planner.get_pos(t)
         #     desired_vel = traj_planner.get_vel(t)
-        #     torque_reference.append(self.controller.control_step(self.model, self.data, desired_pos, desired_vel))
-        #     self.data.ctrl[:] = torque_reference[-1]
-        #     mujoco.mj_step(self.model, self.data, 1)
+        #     torque_reference = self.controller.control_step(self.model, self.data, desired_pos, desired_vel)
+        #     self.do_simulation(torque_reference, 1)
 
         #print("[DEBUG basic_locomotion_env]: qpos error:", self.data.qpos[7:26] - desired_joint_position)
 

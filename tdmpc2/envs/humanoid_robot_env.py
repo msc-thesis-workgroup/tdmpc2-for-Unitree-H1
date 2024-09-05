@@ -24,6 +24,7 @@ from .rewards import (
     WalkV3,
     WalkV4,
     WalkV5,
+    WalkV6,
     WalkV0Easy,
     WalkV2Easy,
     WalkV4Easy,
@@ -63,6 +64,7 @@ REWARDS = {
     "walk-v3": WalkV3,
     "walk-v4": WalkV4,
     "walk-v5": WalkV5,
+    "walk-v6": WalkV6,
     "walk-v0Easy": WalkV0Easy,
     "walk-v2Easy": WalkV2Easy,
     "walk-v4Easy": WalkV4Easy,
@@ -70,7 +72,7 @@ REWARDS = {
 }
 
 DEFAULT_TIME_STEP = 0.002
-DEFAULT_COEFF = 0.25
+DEFAULT_COEFF = 0.25 # TODO: refactor this. It isn't good to have it in this module.
 
 class HumanoidRobotEnv(MujocoEnv, gym.utils.EzPickle,Environment):
     metadata = {

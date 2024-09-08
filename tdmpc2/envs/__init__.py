@@ -58,10 +58,12 @@ def make_env(cfg):
 	if cfg.get('obs', 'state') == 'rgb':
 		env = PixelWrapper(cfg, env)
 	try: # Dict
-		cfg.obs_shape = {k: v.shape for k, v in env.observation_space.spaces.items()}
+		cfg.obs_shape = {k: v.shape for k, v in env.get_observation_space_agent().spaces.items()}
 	except: # Box
-		cfg.obs_shape = {cfg.get('obs', 'state'): env.observation_space.shape}
-	cfg.action_dim = env.action_space.shape[0]
+		cfg.obs_shape = {cfg.get('obs', 'state'): env.get_observation_space_agent().shape}
+	print("cfg.obs_shape",cfg.obs_shape)
+	cfg.action_dim = env.get_action_space_shape_agent() #.shape[0]
+	print("cfg.action_dim",cfg.action_dim)
 	cfg.episode_length = env.max_episode_steps
 	cfg.seed_steps = max(1000, 5*cfg.episode_length)
 	return env

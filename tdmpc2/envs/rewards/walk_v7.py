@@ -9,10 +9,7 @@ from pyquaternion import Quaternion
 # Height of head above which stand reward is 1.
 _STAND_HEIGHT = 1.65 # The ideal height of the head is 1.68 m.
 
-
-
-
-class WalkV6(Reward):
+class WalkV7(Reward):
 
     def __init__(self,robot: Robot):
         super().__init__()
@@ -24,7 +21,7 @@ class WalkV6(Reward):
         self.reset()
         self.robot = robot
         
-        self.arms_joints_bounds = (-0.05,0.05)
+        self.arms_joints_bounds = (-0.1,0.1)
 
     def reset(self) -> None:
         pass
@@ -65,7 +62,7 @@ class WalkV6(Reward):
         move = rewards.tolerance(
             velocity_x, 
             bounds=(self._move_speed_lower_bound, self._move_speed_upper_bound),
-            margin=self._move_speed_lower_bound/2, # 0.83
+            margin=self._move_speed_lower_bound, # 0.83
             value_at_margin=0.1,
             sigmoid="gaussian",
         )
@@ -90,39 +87,22 @@ class WalkV6(Reward):
             sigmoid="linear",
         )
 
-        # q_left_roll = self.robot.get_qpos()[19] # 19 is the index of the left roll joint
-
-        # q_right_roll = self.robot.get_qpos()[23] # 23 is the index of the right roll joint
-        # left_roll_reward = rewards.tolerance(
-        #     q_left_roll,
-        #     bounds=(-0.1,0.1),
-        #     margin=0.5,
-        #     value_at_margin=0.1,
-        #     sigmoid="linear",
-        # )
-
-        # right_roll_reward = rewards.tolerance(
-        #     q_right_roll,
-        #     bounds=(-0.1,0.1),
-        #     margin=0.5,
-        #     value_at_margin=0.1,
-        #     sigmoid="linear",
-        # )
-        # arms_reward = (left_roll_reward + right_roll_reward) / 2
-        
         qpos_arms_joints = self.robot.get_qpos()[18:26]
-        assert len(qpos_arms_joints) == 8
+        #assert len(qpos_arms_joints) == 8
 
         arms_qpos_rewards = rewards.tolerance(
             qpos_arms_joints,
             bounds=self.arms_joints_bounds,
-            margin=0.15,
+            margin=0.1,
             value_at_margin=0.1,
             sigmoid="linear",
         )
 
-        arms_reward = np.mean(arms_qpos_rewards)
-
+        # The arms reward is the product of the rewards of the individual joints.
+        arms_reward = 1
+        for arm_qpos_reward in arms_qpos_rewards:
+            arms_reward *= (2+arm_qpos_reward)/3
+        
         arms_reward = (1 + 5*arms_reward) / 6
 
         move = (move*centered_reward + move*stay_inline_reward)/2

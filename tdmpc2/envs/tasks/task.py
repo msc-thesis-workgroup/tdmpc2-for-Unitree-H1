@@ -33,3 +33,11 @@ class Task(ABC):
     @abstractmethod
     def set_reward(self, reward: Reward):
         pass
+        
+    @abstractmethod
+    def get_action_space_shape_agent(self):
+        pass
+
+    @abstractmethod
+    def get_observation_space_agent(self):
+        pass

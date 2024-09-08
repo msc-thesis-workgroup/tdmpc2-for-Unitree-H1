@@ -16,8 +16,12 @@ class H1(Robot):
         self.dof = _DOF
     
         # TODO(my-rice): These values are hardcoded for now. We need to find a better way to get these values. Use a pd controller config file?
-        self.kp = np.array([200, 200, 200, 300, 40, 200, 200, 200, 300, 40, 300, 100, 100, 100, 100, 100, 100, 100, 100])
-        self.kd = np.array([5, 5, 5, 6, 2, 5, 5, 5, 6, 2, 6, 2, 2, 2, 2, 2, 2, 2, 2])
+        #self.kp = np.array([200, 200, 200, 300, 40, 200, 200, 200, 300, 40, 300, 100, 100, 100, 100, 100, 100, 100, 100])
+        # I want kp/4
+        self.kp = np.array([50, 50, 50, 75, 10, 50, 50, 50, 75, 10, 75, 100, 100, 100, 100, 100, 100, 100, 100])
+        
+        #self.kd = np.array([5, 5, 5, 6, 2, 5, 5, 5, 6, 2, 6, 2, 2, 2, 2, 2, 2, 2, 2])
+        self.kd = np.array([1.25, 1.25, 1.25, 1.5, 0.25, 1.25, 1.25, 1.25, 1.5, 0.25, 1, 2, 2, 2, 2, 2, 2, 2, 2])
 
         # Joint limits expressed as angular positions # TODO: Try to get these values from the environment with self._env.model.jnt_range.
         self.upper_joint_limits = np.array([0.43, 0.43, 2.53, 2.05, 0.52, 0.43, 0.43, 2.53, 2.05, 0.52, 2.35, 2.87, 3.11, 4.45, 2.61, 2.87, 0.34, 1.3, 2.61])
@@ -28,6 +32,10 @@ class H1(Robot):
 
         self._env = None
         
+
+        self.lower_body_joints = 11
+        self.joints = 19
+
         self.lfoot_body_name = "left_ankle_link"
         self.rfoot_body_name = "right_ankle_link"
         self.robot_root_name = "pelvis"
@@ -155,6 +163,10 @@ class H1(Robot):
     def torso_upright(self):
         """Returns projection from z-axes of torso to the z-axes of world."""
         return self._env.named.data.xmat["torso_link", "zz"] #OK
+
+    def torso_orientation(self):
+        """Returns the orientation of the torso."""
+        return self._env.named.data.xmat["torso_link"].copy()
 
     def head_height(self):
         """Returns the height of the torso."""

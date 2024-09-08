@@ -25,13 +25,16 @@ from .rewards import (
     WalkV4,
     WalkV5,
     WalkV6,
+    WalkV7,
     WalkV0Easy,
     WalkV2Easy,
     WalkV4Easy,
-    WalkV5Easy
+    WalkV5Easy,
+    HybridWalkV0
 )
 from .tasks import (
     Walk,
+    HybridWalk
 )
 
 
@@ -54,7 +57,8 @@ ROBOTS = {"h1": H1,
           }
 
 TASKS = {
-    "walk": Walk
+    "walk": Walk,
+    "hybrid_walk": HybridWalk
 }
 
 REWARDS = {
@@ -65,6 +69,8 @@ REWARDS = {
     "walk-v4": WalkV4,
     "walk-v5": WalkV5,
     "walk-v6": WalkV6,
+    "walk-v7": WalkV7,
+    "hybrid_walk-v0": HybridWalkV0,
     "walk-v0Easy": WalkV0Easy,
     "walk-v2Easy": WalkV2Easy,
     "walk-v4Easy": WalkV4Easy,
@@ -87,8 +93,8 @@ class HumanoidRobotEnv(MujocoEnv, gym.utils.EzPickle,Environment):
         task=None,
         frame_skip = DEFAULT_ENV_CONFIG["frame_skip"],
         render_mode="rgb_array",
-        width=256,
-        height=256,
+        width=1280,#256,
+        height=720,#256,
         randomness=DEFAULT_RANDOMNESS,
         **kwargs,
     ):
@@ -140,11 +146,15 @@ class HumanoidRobotEnv(MujocoEnv, gym.utils.EzPickle,Environment):
         self.action_space = Box(
             low=-1, high=1, shape=self.action_space.shape, dtype=np.float32
         )
+        # After creating the internal environment, we can set the observation space and action space that will be used by the agent.
+        print("[DEBUG basic_locomotion_env] BEFORE self.observation_space:", self.observation_space)
+        print("[DEBUG basic_locomotion_env] BEFORE self.action_space:", self.action_space)
 
         self.observation_space = self.task.observation_space
+        
 
-        print("[DEBUG basic_locomotion_env] self.observation_space:", self.observation_space)
-        print("[DEBUG basic_locomotion_env] self.action_space:", self.action_space)
+        print("[DEBUG basic_locomotion_env] AFTER self.observation_space:", self.observation_space)
+        print("[DEBUG basic_locomotion_env] AFTER self.action_space:", self.action_space)
 
         # Keyframe
         self.keyframe = (
@@ -198,7 +208,16 @@ class HumanoidRobotEnv(MujocoEnv, gym.utils.EzPickle,Environment):
         return joint_torques
 
 
-
+    def get_action_space(self):
+        if isinstance(self.task, HybridWalk):
+            return Box(
+                low=-1,
+                high=1,
+                shape=(self.robot.lower_body_joints,),
+                dtype=np.float32,
+            )
+        else:
+            return self.action_space
 
     def step(self, action):
 
@@ -206,7 +225,14 @@ class HumanoidRobotEnv(MujocoEnv, gym.utils.EzPickle,Environment):
         action_high = self.robot.get_upper_limits()
         action_low = self.robot.get_lower_limits()
 
-        desired_joint_position = (action + 1) / 2 * (action_high - action_low) + action_low
+        # if self.task is instance of HybridWalk, then the action is a tuple of two actions
+        if isinstance(self.task, HybridWalk):
+            action = np.concatenate([action,np.zeros(8)])
+            desired_joint_position = (action + 1) / 2 * (action_high - action_low) + action_low
+            desired_joint_position[11:19] = np.zeros(8) # Just to make sure that the upper body joints are not moved
+            #print("[DEBUG basic_locomotion_env]: desired_joint_position:", desired_joint_position)
+        else:
+            desired_joint_position = (action + 1) / 2 * (action_high - action_low) + action_low
 
 
         #TODO implement a switch to choose between the two techniques in configuration file
@@ -257,6 +283,12 @@ class HumanoidRobotEnv(MujocoEnv, gym.utils.EzPickle,Environment):
     def mock_next_state(self, action):
         # TODO delete this function
         return self.task.mock_next_state(action)
+
+    def get_action_space_shape_agent(self):
+        return self.task.get_action_space_shape_agent()
+    
+    def get_observation_space_agent(self):
+        return self.task.get_observation_space_agent()
 
     def reset_model(self):
         mujoco.mj_resetDataKeyframe(self.model, self.data, self.keyframe)

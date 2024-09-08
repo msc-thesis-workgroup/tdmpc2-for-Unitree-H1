@@ -30,15 +30,11 @@ df_info = pd.DataFrame(columns=[
     "move",
     "standing",
     "upright",
-    "improve_gait",
-    "robot_velocity_x",
-    "robot_position_y",
+    "angle_x",
     "com_velocity_x",
-    "com_position_y",
-    "orientation_x",
     "centered_reward",
     "stay_inline_reward",
-    "robot_velocity",
+    "robot_velocity"
 ])
 
 @hydra.main(config_name="config", config_path=".")
@@ -153,12 +149,8 @@ def evaluate(cfg: dict):
                 #     info["move"],
                 #     info["standing"],
                 #     info["upright"],
-                #     info["improve_gait"],
-                #     info["robot_velocity_x"],
-                #     info["robot_position_y"],
+                #     info["angle_x"],
                 #     info["com_velocity_x"],
-                #     info["com_position_y"],
-                #     info["orientation_x"],
                 #     info["centered_reward"],
                 #     info["stay_inline_reward"],
                 #     info["robot_velocity"]

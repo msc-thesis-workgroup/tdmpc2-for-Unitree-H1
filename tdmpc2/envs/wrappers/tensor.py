@@ -14,8 +14,9 @@ class TensorWrapper(gym.Wrapper):
 		super().__init__(env)
 
 	def rand_act(self):
-		return torch.from_numpy(self.action_space.sample().astype(np.float32))
-
+		# return torch.from_numpy(self.action_space.sample().astype(np.float32))
+		return torch.from_numpy(self.env.get_action_space().sample().astype(np.float32))
+	
 	def _try_f32_tensor(self, x):
 		x = torch.from_numpy(x)
 		if x.dtype == torch.float64:

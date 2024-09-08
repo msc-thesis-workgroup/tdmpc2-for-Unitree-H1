@@ -8,9 +8,6 @@ import numpy as np
 from dm_control.utils import rewards
 from gymnasium.spaces import Box
 
-_STAND_HEIGHT = 1.65
-_WALK_SPEED = 1
-
 class Walk(Task):
     def __init__(self):
         super().__init__()
@@ -21,6 +18,13 @@ class Walk(Task):
         self._observation_space = Box(
             low=-np.inf, high=np.inf, shape=(robot.dof * 2 - 1,), dtype=np.float64
         )
+        self._observation_space_agent = self._observation_space
+        self._action_space_shape_agent = robot.joints
+
+    def get_action_space_shape_agent(self):
+        return self._action_space_shape_agent
+    def get_observation_space_agent(self)-> Box:
+        return self._observation_space_agent
 
     @property
     def observation_space(self):

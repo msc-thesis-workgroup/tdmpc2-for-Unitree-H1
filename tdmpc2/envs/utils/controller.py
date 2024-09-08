@@ -7,8 +7,8 @@ class PositionController():
     def __init__(self,robot: Robot, coeff: int = 1):
         #TODO: refactor this
         self.robot = robot
-        self.kp = self.robot.get_kp()*coeff
-        self.kd = self.robot.get_kd()*coeff
+        self.kp = self.robot.get_kp()#*coeff
+        self.kd = self.robot.get_kd()#*coeff
         self.nv = self.robot.get_nv()
         self.nq = self.robot.get_nq()
 
@@ -17,6 +17,9 @@ class PositionController():
         # self.kp = np.array([200, 200, 200, 300, 40, 200, 200, 200, 300, 40, 300, 100, 100, 100, 100, 100, 100, 100, 100])
         # self.kd = np.array([5, 5, 5, 6, 2, 5, 5, 5, 6, 2, 6, 2, 2, 2, 2, 2, 2, 2, 2])
 
+        print("[DEBUG controller]: kp",self.kp)
+        print("[DEBUG controller]: kd",self.kd)
+        
     def control_step(self,model, data, desired_q_pos, desired_q_vel) -> np.array:
         
         # compute controller data

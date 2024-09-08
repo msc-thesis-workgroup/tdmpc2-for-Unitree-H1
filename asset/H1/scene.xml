@@ -21,8 +21,8 @@
     <geom name="floor" size="0 0 0.05" type="plane" material="groundplane"/>
 
     <!-- Alternative representation of Vector (1,0,0) in red using cylinder -->
-    <!-- <geom type="cylinder" fromto="3 3 3 4 3 3" rgba="1 0 0 1" size="0.02"/>
-    <geom type="cylinder" fromto="3 3 3 3 4 3" rgba="0 1 0 1" size="0.02"/> -->
+    <!-- <geom type="cylinder" fromto="0 0 2 10 0 2" rgba="1 0 0 1" size="0.05"/>  -->
+    <!-- <geom type="cylinder" fromto="0 0 2 0 10 2" rgba="0 1 0 1" size="0.05"/>  -->
 
   </worldbody>
 

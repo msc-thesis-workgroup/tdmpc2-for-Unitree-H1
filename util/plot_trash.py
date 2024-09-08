@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-PATH_TO_FILE = "/home/davide/tdmpc2/tdmpc2/logs/h1-walk-v2/1/tdmpc/videos/h1-walk-v2-0.csv"
+PATH_TO_FILE = "/home/davide/tdmpc2/tdmpc2/logs/h1-hybrid_walk-v0/52/tdmpc/videos/h1-hybrid_walk-v0-0.csv"
 
 df = pd.read_csv(PATH_TO_FILE)
 
@@ -33,15 +33,51 @@ df = pd.read_csv(PATH_TO_FILE)
 # plt.xlabel("time")
 # plt.ylabel("position")
 
-# I want to compare angle_x and stay_inline_reward
+# I want to plot many subfigures: angle_x, centered_reward, stay_inline_reward, move and small_control
 plt.figure()
-plt.plot(df["orientation_x"], label="orientation_x")
-plt.plot(df["stay_inline_reward"], label="stay_inline_reward")
+plt.subplot(5,1,1)
+plt.plot(df["angle_x"], label="angle_x")
 plt.legend()
-plt.title("orientation_x vs stay_inline_reward")
+plt.title("angle_x")
 plt.xlabel("time")
 plt.ylabel("angle")
+# add grid
+plt.grid()
+# plot two horizontal lines -8 and 8
+plt.axhline(y=-8, color='r', linestyle='-', label="-8")
+plt.axhline(y=8, color='r', linestyle='-', label="8")
 
 
-plt.tight_layout()
+plt.subplot(5,1,2)
+plt.plot(df["centered_reward"], label="centered_reward")
+plt.legend()
+plt.title("centered_reward")
+plt.xlabel("time")
+plt.ylabel("reward")
+
+plt.subplot(5,1,3)
+plt.plot(df["stay_inline_reward"], label="stay_inline_reward")
+plt.legend()
+plt.title("stay_inline_reward")
+plt.xlabel("time")
+plt.ylabel("reward")
+
+plt.subplot(5,1,4)
+plt.plot(df["move"], label="move")
+plt.legend()
+plt.title("move")
+plt.xlabel("time")
+plt.ylabel("reward")
+
+plt.subplot(5,1,5)
+plt.plot(df["small_control"], label="small_control")
+plt.legend()
+plt.title("small_control")
+plt.xlabel("time")
+plt.ylabel("reward")
+
+
+# save the figure
+plt.savefig("h1-hybrid_walk-v0-0.png")
+#plt.tight_layout()
 plt.show()

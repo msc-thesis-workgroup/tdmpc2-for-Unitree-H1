@@ -21,7 +21,7 @@ from dm_control.mujoco.engine import NamedIndexStructs
 def get_joint_torques(ctrl,model,data):
 
 	kp = np.array([200, 200, 200, 300, 40, 200, 200, 200, 300, 40, 300, 100, 100, 100, 100, 100, 100, 100, 100])
-	kd = np.array([5, 5, 5, 6, 2, 5, 5, 5, 6, 2, 6, 2, 2, 2, 2, 2, 2, 2, 2])
+	kd = np.array([6, 5, 5, 6, 2, 5, 5, 5, 6, 2, 6, 2, 2, 2, 2, 2, 2, 2, 2])
 
 	actuator_length = data.qpos[7:26] # self.data.actuator_length
 	error = ctrl - actuator_length
@@ -38,7 +38,7 @@ def get_joint_torques(ctrl,model,data):
 
 	return joint_torques
 
-PATH_TO_MODEL = "asset/H1EASY/scene.xml"
+PATH_TO_MODEL = "asset/H1/scene.xml"
 
 # Load the model
 model = mujoco.MjModel.from_xml_path(PATH_TO_MODEL)
@@ -46,12 +46,20 @@ data = mujoco.MjData(model)
 # Create a viewer
 viewer = mujoco_viewer.MujocoViewer(model, data)
 # Set the target qpos
+# target_q = np.array([0, 0, 0.98,
+# 					1, 0, 0, 0,
+# 					0, 0, -0.4, 0.8, -0.4,
+# 					0, 0, -0.4, 0.8, -0.4,
+# 					0
+# 					])
+
 target_q = np.array([0, 0, 0.98,
 					1, 0, 0, 0,
 					0, 0, -0.4, 0.8, -0.4,
 					0, 0, -0.4, 0.8, -0.4,
-					0
-					])
+					0,
+					0, 0, 0, 0,
+					0, 0, 0, 0])
 
 print("INITIAL qpos", data.qpos)
 
@@ -74,6 +82,18 @@ named = NamedIndexStructs(
 #     plt.pause(0.0001)
 
 
+upper_body_joints = { # The indexes are the indexes of the joints in the qpos array. However, they are hardcoded I found out that in named data structure it should be a dictionary with the name of the joint as key and the index as value. 
+    "left_shoulder_roll": 19,
+    "left_shoulder_pitch": 18,
+    "left_shoulder_yaw": 20,
+    "left_elbow": 21,
+    "right_shoulder_roll": 23,
+    "right_shoulder_pitch": 22,
+    "right_shoulder_yaw": 24,
+    "right_elbow": 25,
+    "torso": 17, 
+}
+
 for i in range(1000):
 
 	#torque = controller.control_step(model=model, data=data, desired_q_pos=target_q[7:26], desired_q_vel=np.zeros_like(target_q[7:26]))
@@ -87,11 +107,10 @@ for i in range(1000):
 	#mujoco.mj_step(model, data)
 
 	data.qpos = target_q
-	
+	data.qpos[17] = -0.6
 	#error = data.qpos[7:18] - target_q[7:18]
 	mujoco.mj_forward(model, data)
 	# plot the erro
-	
 	
 	#plt.stem(error)
 	# update_plot(error, data.time)

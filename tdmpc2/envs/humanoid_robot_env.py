@@ -183,6 +183,10 @@ class HumanoidRobotEnv(MujocoEnv, gym.utils.EzPickle,Environment):
 
         self.controller = PositionController(self.robot, coeff=DEFAULT_COEFF) # TODO: refactor DEFAULT_COEFF. It isn't good to have it in this module.
 
+    @property
+    def time(self):
+        return self.data.time
+
     def get_joint_torques(self,ctrl):
 
         # TODO(my-rice): I need to change this. The kp and kd values are hard coded. I need to take them from the specific robot class. (from robots.py)

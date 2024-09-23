@@ -37,7 +37,7 @@ python evaluate.py task=robot_name-task_name-reward_version checkpoint=checkpoin
 ```
 An example of how to evaluate the model is the following:
 ```bash
-python evaluate.py task=h1-walk-v1 checkpoint=/home/davide/tdmpc2/tdmpc2/logs/humanoid_h1-walk-v0/1/tdmpc/models/base_3-2024-04-30-22-38-59/step-775175.pt save_video=true
+python evaluate.py task=h1-walk-v1 checkpoint=/path/to/file/step-0.pt save_video=true
 ```
 
 ----
@@ -55,7 +55,11 @@ python train.py task=robot_name-task_name-reward_version checkpoint=checkpoint_p
 ```
 An example of how to train the model from a checkpoint is the following:
 ```bash
-python train.py task=h1-walk-v1 checkpoint=/home/davide/tdmpc2/tdmpc2/logs/humanoid_h1-walk-v0/1/tdmpc/models/base/step-750465.pt experiment_name=testing
+python train.py task=h1-walk-v1 checkpoint=/path/to/file/step-0.pt experiment_name=testing
+```
+or
+```bash
+python3 train.py task=h1-hybrid_walk-v0 frame_skip=5 max_episode_steps=1000 seed=52 checkpoint=/path/to/file/step-0.pt experiment_name=HybridWalkV0_resumeTrainig
 ```
 
 WARNING!!! Notice in the same directory of the checkpoint file there should be:
@@ -79,9 +83,9 @@ This project is licensed under the MIT License - see the `LICENSE` file for deta
 
 - The Unitree Robotics H1 robot is a humanoid robot developed by Unitree Robotics. The robot model is taken from MuJoCo Menagerie, which is a collection of MuJoCo environments and models.
 
-- Some of the code was inspired by the HumanoidBench repository. However, the code is not a direct copy of the HumanoidBench repository, there are enough differences between the two repositories to consider them as completely different projects. These differences are necessary for the needs of the project.
+- Few modules code ware inspired by the HumanoidBench repository. However, the objectives of this project are completely different from the HumanoidBench project and the code was modified to fit the objectives of this project. 
 --- 
 
 ## Known issues
 
-When you evaluate the model, the program will save the video correctly, but it will crash in the end. This is due to a bug in the code that will be fixed in the future. The evaluation is still correct, and the video is saved correctly.
+When you evaluate the model, the program will save the video correctly, but it could crash in the end. This is due to a bug in the code that will be fixed in the future. The evaluation is still correct, and the video will be saved correctly.

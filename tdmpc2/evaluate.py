@@ -219,7 +219,7 @@ def generalize_walk_direction(obs):
     new_quat = transformation_quat * current_quat
     new_pos = transformation_quat.rotate(current_position)
 
-    new_vel = transformation_quat.rotate(obs[26:29].numpy())
+    new_vel = transformation_quat.rotate(obs[26-8:29-8].numpy())
     #new_ang_vel = transformation_quat.rotate(obs[29:32].numpy())
 
     df_observations.loc[len(df_observations)] = [current_position, current_quat]
@@ -227,7 +227,7 @@ def generalize_walk_direction(obs):
 
     obs[0:3] = torch.from_numpy(new_pos).type_as(obs)
     obs[3:7] = torch.from_numpy(new_quat.q).type_as(obs)
-    obs[26:29] = torch.from_numpy(new_vel).type_as(obs)
+    obs[26-8:29-8] = torch.from_numpy(new_vel).type_as(obs)
     #obs[29:32] = torch.from_numpy(new_ang_vel).type_as(obs)
 
     return obs

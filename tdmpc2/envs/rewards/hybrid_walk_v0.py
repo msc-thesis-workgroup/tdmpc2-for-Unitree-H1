@@ -67,8 +67,8 @@ class HybridWalkV0(Reward):
 
         centered_reward = rewards.tolerance(
             position_y,
-            bounds=(-0.3, 0.3),
-            margin=0.3,
+            bounds=(-0.6, 0.6),
+            margin=0.4,
             value_at_margin=0.1,
             sigmoid="linear",
         )
@@ -78,9 +78,9 @@ class HybridWalkV0(Reward):
         
         stay_inline_reward = rewards.tolerance(
             torso_jnt,
-            bounds=(-0.15, 0.15),
-            margin=0.45,
-            value_at_margin=0.1,
+            bounds=(-0.35, 0.35), # -20 degrees, 20 degrees
+            margin=0.45, # 25 degrees # (-
+            value_at_margin=0.7,
             sigmoid="linear",
         )
 

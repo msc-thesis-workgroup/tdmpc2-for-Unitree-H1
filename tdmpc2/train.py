@@ -29,24 +29,10 @@ torch.backends.cudnn.benchmark = True
 @hydra.main(config_name="config", config_path=".")
 def train(cfg: dict):
     """
-    Script for training single-task / multi-task TD-MPC2 agents.
+    Script for training a single-task H1 robot with TD-MPC2. This is an adaptation of the original training script of TD-MPC2.
 
-    Most relevant args:
-            `task`: task name (or mt30/mt80 for multi-task training)
-            `model_size`: model size, must be one of `[1, 5, 19, 48, 317]` (default: 5)
-            `steps`: number of training/environment steps (default: 10M)
-            `seed`: random seed (default: 1)
-
-    See config.yaml for a full list of args.
-
-    Example usage:
-    ```
-            $ python train.py task=mt80 model_size=48
-            $ python train.py task=mt30 model_size=317
-            $ python train.py task=dog-run steps=7000000
-    ```
     """
-    # assert torch.cuda.is_available()
+    assert torch.cuda.is_available()
     assert cfg.steps > 0, "Must train for at least 1 step."
     cfg = parse_cfg(cfg)
     set_seed(cfg.seed)
@@ -114,7 +100,7 @@ def train(cfg: dict):
         # -> A solution can be check if there are some differences between the two cfg files and if there are, raise an error.        
 
         else:
-            print("WARNING: Buffer not found, it can be a problem for the training.")
+            print("WARNING: Buffer not found, it can be a problem for the training. Check the path",pickle_path)
 
     trainer.train()
     print("\nTraining completed successfully")

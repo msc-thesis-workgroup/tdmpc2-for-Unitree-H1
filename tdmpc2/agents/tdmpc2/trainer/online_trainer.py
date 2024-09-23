@@ -158,7 +158,8 @@ class OnlineTrainer(Trainer):
 			done = done or truncated
 			self._tds.append(self.to_td(obs, action, reward))
 
-			# Update agent # If the buffer is loaded from a file, it is not necessary adding elements to the buffer, without updating the agent.
+			# Update agent 
+			# If the buffer is loaded from a file, it is not necessary adding elements to the buffer, without updating the agent.
 			if ((self._step >= self.cfg.seed_steps) and (self._step >= (self._starting_step+self.cfg.seed_steps))) or (self._buffer_loaded): # If from_scratch is True, _starting_step is 0.
 				if self._step == self.cfg.seed_steps and self.cfg.from_scratch:
 					num_updates = self.cfg.seed_steps

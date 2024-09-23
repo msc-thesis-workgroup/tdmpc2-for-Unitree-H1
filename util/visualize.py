@@ -5,6 +5,7 @@ import os
 from matplotlib import pyplot as plt
 import sys
 from pyquaternion import Quaternion
+import time
 # Add the path to the folder containing the module
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'tdmpc2', 'envs')))
 
@@ -106,8 +107,16 @@ for i in range(1000):
 	#data.qpos[:len(target_q)] = target_q
 	#mujoco.mj_step(model, data)
 
+	# if i % 10 == 0:
+	# 	current_quat = Quaternion(data.qpos[3:7])
+	# 	q_temp = Quaternion(axis=[0, 0, 1], angle=5*np.pi/180)
+	# 	home_orientation = q_temp*current_quat
+
+	# 	data.qpos[3:7] = home_orientation.q 
+
 	data.qpos = target_q
-	data.qpos[17] = -0.6
+	data.qpos[17] = np.pi/180 * 20 #30 degree = 0.52359877559 #45 degree = 0.78539816339
+	#90 degree = 1.57079632679
 	#error = data.qpos[7:18] - target_q[7:18]
 	mujoco.mj_forward(model, data)
 	# plot the erro

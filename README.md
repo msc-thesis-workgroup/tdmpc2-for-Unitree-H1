@@ -1,8 +1,13 @@
 <h1>TD-MPC2 for Unitree Robotics H1</span></h1>
 
-This repository is a fork of the official implementation of TD-MPC2 by Nicklas Hansen, Hao Su, and Xiaolong Wang. The original repository can be found [here](https://github.com/nicklashansen/tdmpc2). 
-The repository is specifically designed for training and evaluating TD-MPC2 agents on a variety of continuous control tasks for the humanoid Unitree H1 robot. 
+This repository provides an implementation of TD-MPC2 for the humanoid Unitree H1 robot, with the objective of training and evaluating TD-MPC2 agents on a variety of continuous control tasks for the humanoid Unitree H1 robot. 
+In particular, it is a fork of the official implementation of TD-MPC2 by Nicklas Hansen, Hao Su, and Xiaolong Wang. The original repository can be found [here](https://github.com/nicklashansen/tdmpc2). 
 
+The repository contains the following main components:
+- the TD-MPC2 algorithm
+- the Unitree H1 robot model
+- the code to create an environment for the Unitree H1 robot
+- the training and evaluation scripts for the Unitree H1 robot
 ---
 
 ## Overview

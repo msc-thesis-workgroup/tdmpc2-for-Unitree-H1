@@ -4,7 +4,7 @@ import numpy as np
 
 class Environment(ABC):
     @abstractmethod
-    def step(self, action: np.array): # -> tuple[np.array, float, bool, dict]|np.array: # TODO check the output of this method. obs, reward, terminated, info
+    def step(self, action: np.ndarray): # -> tuple[np.array, float, bool, dict]|np.array: # TODO check the output of this method. obs, reward, terminated, info
         pass
 
     @abstractmethod
@@ -12,7 +12,7 @@ class Environment(ABC):
         pass
     
     @abstractmethod
-    def get_obs(self) -> np.array:
+    def get_obs(self) -> np.ndarray:
         pass
 
     @abstractmethod

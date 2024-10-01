@@ -162,7 +162,7 @@ class H1(Robot):
 
     def torso_upright(self):
         """Returns projection from z-axes of torso to the z-axes of world."""
-        return self._env.named.data.xmat["torso_link", "zz"] #OK
+        return self._env.named.data.xmat["torso_link", "zz"]
 
     def torso_orientation(self):
         """Returns the orientation of the torso."""
@@ -198,7 +198,6 @@ class H1(Robot):
         #temp = self._env.named.data.site_xpos["left_foot"]
         #print("[DEBUG: robots.py]: left_foot_height_pos:",left_foot_height_pos, "self._env.named.data.site_xpos['left_foot']: ",temp, "EQUAL?",left_foot_height_pos==temp) 
         return left_foot_height_pos[2]
-        #return self._env.named.data.site_xpos["left_foot", "z"] # Problem here
 
     def right_foot_height(self):
         """Returns the height of the right foot."""
@@ -214,16 +213,15 @@ class H1(Robot):
         #print("[DEBUG: robots.py]: right_foot_height_pos:",right_foot_height_pos, "self._env.named.data.site_xpos['right_foot']: ",temp, "EQUAL?",right_foot_height_pos==temp)
 
         return right_foot_height_pos[2]
-        #return self._env.named.data.site_xpos["right_foot", "z"] # Problem here
 
     def center_of_mass_position(self):
         """Returns position of the center-of-mass."""
-        return self._env.named.data.subtree_com["pelvis"].copy() # OK
+        return self._env.named.data.subtree_com["pelvis"].copy()
 
     def center_of_mass_velocity(self):
         """Returns the velocity of the center-of-mass."""
         #print("[DEBUG: robots.py]: center_of_mass_velocity:",self._env.named.data.sensordata["pelvis_subtreelinvel"].copy())
-        return self._env.named.data.sensordata["pelvis_subtreelinvel"].copy() # Problem here
+        return self._env.named.data.sensordata["pelvis_subtreelinvel"].copy() 
 
     def get_lfoot_body_pos(self):
         """Returns the position of the left foot."""
@@ -253,11 +251,11 @@ class H1(Robot):
     def joint_angles(self):
         """Returns the state without global orientation or position."""
         # Skip the 7 DoFs of the free root joint.
-        return self._env.data.qpos[7 : self.dof].copy() # OK
+        return self._env.data.qpos[7 : self.dof].copy()
 
     def joint_velocities(self):
         """Returns the joint velocities."""
-        return self._env.data.qvel[6 : self.dof].copy() # OK
+        return self._env.data.qvel[6 : self.dof].copy()
     
     def robot_orientation(self):
         """Returns the orientation of the robot."""

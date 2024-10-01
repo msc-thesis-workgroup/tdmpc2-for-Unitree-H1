@@ -30,14 +30,14 @@ class Walk(Task):
     def observation_space(self):
         return self._observation_space
 
-    def get_obs(self, env: Environment) -> np.array:
+    def get_obs(self, env: Environment) -> np.ndarray:
         position = env.data.qpos.flat.copy()
         velocity = env.data.qvel.flat.copy()
         state = np.concatenate((position, velocity))
         return state
 
-    def unnormalize_action(self, action: np.array) -> np.array:
-        # TODO: Check if this is correct
+    def unnormalize_action(self, action: np.ndarray) -> np.ndarray:
+        # TODO: Check if this is correctnd
         return (
             2
             * (action - self._env.action_low)
@@ -45,13 +45,13 @@ class Walk(Task):
             - 1
         )
     
-    def normalize_action(self, action: np.array) -> np.array:
+    def normalize_action(self, action: np.ndarray) -> np.ndarray:
         # TODO: Check if this is correct
         return (action + 1) / 2 * (
             self._env.action_high - self._env.action_low
         ) + self._env.action_low
     
-    def reset_model(self,env: Environment) -> np.array:
+    def reset_model(self,env: Environment) -> np.ndarray:
         self._reward.reset()
         return self.get_obs(env)
     
@@ -61,5 +61,5 @@ class Walk(Task):
     def set_reward(self, reward: Reward):
         self._reward = reward
 
-    def get_reward(self, robot: Robot, action: np.array) -> float:
+    def get_reward(self, robot: Robot, action: np.ndarray) -> float:
         return self._reward.get_reward(robot, action)

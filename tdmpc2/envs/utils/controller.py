@@ -20,7 +20,7 @@ class PositionController():
         print("[DEBUG controller]: kp",self.kp)
         print("[DEBUG controller]: kd",self.kd)
         
-    def control_step(self,model, data, desired_q_pos, desired_q_vel) -> np.array:
+    def control_step(self,model, data, desired_q_pos, desired_q_vel) -> np.ndarray:
         
         # compute controller data
         mass_matrix = np.ndarray(shape=(model.nv, model.nv), dtype=np.float64, order="C")
@@ -45,7 +45,7 @@ class PositionController():
 
         return self.torques
 
-    def control_step2(self,model, data, desired_q_pos, desired_q_vel=None) -> np.array:
+    def control_step2(self,model, data, desired_q_pos, desired_q_vel=None) -> np.ndarray:
         """In this version desired_q_vel is ignored, that means it is assumed to be zero"""
         kp = self.kp
         kd = self.kd

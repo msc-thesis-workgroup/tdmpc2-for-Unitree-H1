@@ -188,7 +188,7 @@ class HumanoidRobotEnv(MujocoEnv, gym.utils.EzPickle,Environment):
         return self.data.time
 
     def get_joint_torques(self,ctrl):
-
+        # TODO: Delete this function. There is the controller class that is responsible for the control.
         # TODO(my-rice): I need to change this. The kp and kd values are hard coded. I need to take them from the specific robot class. (from robots.py)
         # kp = np.array([200, 200, 200, 300, 40, 200, 200, 200, 300, 40, 300, 100, 100, 100, 100, 100, 100, 100, 100])
         # kd = np.array([5, 5, 5, 6, 2, 5, 5, 5, 6, 2, 6, 2, 2, 2, 2, 2, 2, 2, 2])
@@ -223,7 +223,7 @@ class HumanoidRobotEnv(MujocoEnv, gym.utils.EzPickle,Environment):
         else:
             return self.action_space
 
-    def step(self, action):
+    def step(self, action) -> tuple:
 
         #TODO refactor this. I don't like the fact that these steps are made here. I would like to have them in the task class. Environment should only be responsible for the simulation.
         action_high = self.robot.get_upper_limits()

@@ -40,7 +40,7 @@ class HybridWalkV0(Reward):
             robot.torso_upright(),
             bounds=(0.9, float("inf")),
             sigmoid="linear",
-            margin=1.9,
+            margin=1.9, # it doesn't make sense
             value_at_margin=0,
         )
         stand_reward = standing * upright

@@ -12,3 +12,4 @@ from .walk_v2Easy import WalkV2Easy
 from .walk_v4Easy import WalkV4Easy
 from .walk_v5Easy import WalkV5Easy
 from .hybrid_walk_v0 import HybridWalkV0
+from .hybrid_walk_v0_BENCHMARK import HybridWalkBENCHMARK

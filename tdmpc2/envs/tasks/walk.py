@@ -63,3 +63,21 @@ class Walk(Task):
 
     def get_reward(self, robot: Robot, action: np.ndarray) -> float:
         return self._reward.get_reward(robot, action)
+
+def check_collision(env: Environment) -> bool:
+    # check collision with the robot
+
+    contacts = [env.data.contact[i] for i in range(env.data.ncon)]
+
+    feet = ["left_ankle_link", "right_ankle_link"]
+    feet_ids = [env.model.body(bn).id for bn in feet]
+    for i,c in enumerate(contacts):
+        geom1_body = env.model.body(env.model.geom_bodyid[c.geom1])
+        geom2_body = env.model.body(env.model.geom_bodyid[c.geom2])
+        # print("geom1_body",geom1_body)
+        # print("geom2_body",geom2_body)
+        geom1_is_floor = (env.model.body(geom1_body.rootid).name!="pelvis")
+        geom2_is_foot = (env.model.geom_bodyid[c.geom2] in feet_ids)
+        if not(geom1_is_floor and geom2_is_foot):
+            return True
+    return False

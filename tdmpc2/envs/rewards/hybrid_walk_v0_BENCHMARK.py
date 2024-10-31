@@ -24,6 +24,7 @@ class HybridWalkBENCHMARK(Reward):
         self.goal = np.array([9, 9])
         self.home = np.array([1.5, 0])
         self.max_distance = np.linalg.norm(self.goal - self.home)
+        self.prev_dist = self.max_distance
 
     def reset(self) -> None:
         pass
@@ -59,19 +60,33 @@ class HybridWalkBENCHMARK(Reward):
         #position_y = position[1]
 
         position = position[0:2]
-        distance = np.linalg.norm(position - self.goal)
-        if distance < 0 or distance > self.max_distance:
-            move = 0
+        distance = np.linalg.norm(self.goal - position)
+        # if distance < 0 or distance > self.max_distance:
+        #     move = 0
+        # else:
+        #     move = distance / self.max_distance
+        #     move = 1 - move
+
+        eps = 0.001
+        if (distance) <= self.prev_dist:
+            move = 1
         else:
-            move = distance / self.max_distance
-            move = 1 - move
+            move = 0
         
         move = (1+2*move)/3
 
-        avoid_obstacles = 1
-        if position[0] >= 3.5 and position[1] <= 2:
-            avoid_obstacles = 0
-        elif (position[0] >= 2.7 and position[0] <= 7.3) and (position[1] >= 3 and position[1] <= 6):
+        # avoid_obstacles = 0
+        # if position[0] >= 3.5 and position[1] <= 2:
+        #     print("Collinding with obstacle: -50")
+        #     avoid_obstacles = -50
+        # elif (position[0] >= 2.7 and position[0] <= 7.3) and (position[1] >= 3 and position[1] <= 6):
+        #     print("Collinding with obstacle: -50")
+        #     avoid_obstacles = -50
+
+        flag = check_collision(robot._env)
+        if flag:
+            avoid_obstacles = -50
+        else:
             avoid_obstacles = 0
 
         # fix torso orientation
@@ -101,11 +116,11 @@ class HybridWalkBENCHMARK(Reward):
             if speed_comp[0] < 0 or speed_comp[1] < 0:
                 speed_rew = min(speed_rew,0.5)
 
-        move = move*speed_rew*avoid_obstacles
+        move = move*speed_rew
 
         move = (5 * move + 1) / 6
         control_reward = (control_reward + 2) / 3
-        reward = stand_reward*move*control_reward
+        reward = stand_reward*move*control_reward + avoid_obstacles
 
 
         #print("move",move,"control_reward",control_reward,"stand_reward",stand_reward)
@@ -118,3 +133,20 @@ class HybridWalkBENCHMARK(Reward):
             "upright": upright,
         }
     
+def check_collision(env) -> bool:
+    # check collision with the robot
+
+    contacts = [env.data.contact[i] for i in range(env.data.ncon)]
+
+    feet = ["left_ankle_link", "right_ankle_link"]
+    feet_ids = [env.model.body(bn).id for bn in feet]
+    for i,c in enumerate(contacts):
+        geom1_body = env.model.body(env.model.geom_bodyid[c.geom1])
+        geom2_body = env.model.body(env.model.geom_bodyid[c.geom2])
+        # print("geom1_body",geom1_body)
+        # print("geom2_body",geom2_body)
+        geom1_is_floor = (env.model.body(geom1_body.rootid).name!="pelvis")
+        geom2_is_foot = (env.model.geom_bodyid[c.geom2] in feet_ids)
+        if not(geom1_is_floor and geom2_is_foot):
+            return True
+    return False

@@ -123,19 +123,22 @@ def evaluate(cfg: dict):
             obs, done, ep_reward, t = env.reset(task_idx=task_idx), False, 0, 0
             #Adapt to the new observation format
             obs = obs[0] if isinstance(obs, tuple) else obs
-            #if cfg.generalize_movement:
+            # if cfg.generalize_movement:
             #    obs = generalize_walk_direction(obs)
                 
             if cfg.save_video:
                 frames = [env.render()]
             while not done:
                 action = agent.act(obs, t0=t == 0, task=task_idx)
+
+                # record_data(env,action)
+
                 obs, reward, terminated, truncated, info = env.step(action)
                 
                 #Adapt to the new observation and done format
                 obs = obs[0] if isinstance(obs, tuple) else obs
 
-                #if cfg.generalize_movement:
+                # if cfg.generalize_movement:
                 #    obs = generalize_walk_direction(obs)
                     
 

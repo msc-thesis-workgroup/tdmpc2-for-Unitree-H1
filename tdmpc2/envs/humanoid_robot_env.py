@@ -30,7 +30,8 @@ from .rewards import (
     WalkV2Easy,
     WalkV4Easy,
     WalkV5Easy,
-    HybridWalkV0
+    HybridWalkV0,
+    HybridWalkBENCHMARK
 )
 from .tasks import (
     Walk,
@@ -71,6 +72,7 @@ REWARDS = {
     "walk-v6": WalkV6,
     "walk-v7": WalkV7,
     "hybrid_walk-v0": HybridWalkV0,
+    "hybrid_walk-BENCHMARK": HybridWalkBENCHMARK,
     "walk-v0Easy": WalkV0Easy,
     "walk-v2Easy": WalkV2Easy,
     "walk-v4Easy": WalkV4Easy,
